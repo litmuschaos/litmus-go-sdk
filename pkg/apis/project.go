@@ -1,0 +1,189 @@
+/*
+Copyright © 2021 The LitmusChaos Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+package apis
+
+import (
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+
+	"github.com/golang-jwt/jwt"
+
+	"github.com/litmuschaos/litmus-go-sdk/pkg/utils"
+
+	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
+)
+
+type CreateProjectResponse struct {
+	Data struct {
+		Name string `json:"name"`
+		ID   string `json:"projectID"`
+	} `json:"data"`
+	Errors []struct {
+		Message string   `json:"message"`
+		Path    []string `json:"path"`
+	} `json:"errors"`
+}
+
+type createProjectPayload struct {
+	ProjectName string `json:"projectName"`
+}
+
+func CreateProjectRequest(projectName string, cred types.Credentials) (CreateProjectResponse, error) {
+	payloadBytes, err := json.Marshal(createProjectPayload{
+		ProjectName: projectName,
+	})
+
+	if err != nil {
+		return CreateProjectResponse{}, err
+	}
+	resp, err := SendRequest(SendRequestParams{cred.Endpoint + utils.AuthAPIPath + "/create_project", "Bearer " + cred.Token}, payloadBytes, string(types.Post))
+	if err != nil {
+		return CreateProjectResponse{}, err
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return CreateProjectResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		var project CreateProjectResponse
+		err = json.Unmarshal(bodyBytes, &project)
+		if err != nil {
+			return CreateProjectResponse{}, err
+		}
+
+		if len(project.Errors) > 0 {
+			return CreateProjectResponse{}, errors.New(project.Errors[0].Message)
+		}
+
+		utils.White_B.Println("project/" + project.Data.Name + " created")
+		return project, nil
+	} else {
+		return CreateProjectResponse{}, errors.New("Unmatched status code:" + string(bodyBytes))
+	}
+}
+
+type ListProjectResponse struct {
+	Message string `json:"message"`
+	Data    struct {
+		Projects []struct {
+			ID        string `json:"projectID"` // Adjusted field name
+			Name      string `json:"name"`
+			CreatedAt int64  `json:"createdAt"`
+		} `json:"projects"`
+		TotalNumberOfProjects int `json:"totalNumberOfProjects"`
+	} `json:"data"`
+	Errors []struct {
+		Message string   `json:"message"`
+		Path    []string `json:"path"`
+	} `json:"errors"`
+}
+
+func ListProject(cred types.Credentials) (ListProjectResponse, error) {
+
+	resp, err := SendRequest(SendRequestParams{Endpoint: cred.Endpoint + utils.AuthAPIPath + "/list_projects", Token: "Bearer " + cred.Token}, []byte{}, string(types.Get))
+	if err != nil {
+		return ListProjectResponse{}, err
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ListProjectResponse{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		var data ListProjectResponse
+		err = json.Unmarshal(bodyBytes, &data)
+		if err != nil {
+			return ListProjectResponse{}, err
+
+		}
+
+		if len(data.Errors) > 0 {
+			return ListProjectResponse{}, errors.New(data.Errors[0].Message)
+		}
+
+		return data, nil
+	} else {
+		return ListProjectResponse{}, errors.New("Unmatched status code:" + string(bodyBytes))
+	}
+}
+
+type ProjectDetails struct {
+	Data   Data `json:"data"`
+	Errors []struct {
+		Message string   `json:"message"`
+		Path    []string `json:"path"`
+	} `json:"errors"`
+}
+
+type Data struct {
+	ID       string    `json:"ID"`
+	Projects []Project `json:"Projects"`
+}
+
+type Member struct {
+	Role     string `json:"Role"`
+	UserID   string `json:"userID"`
+	UserName string `json:"username"`
+}
+
+type Project struct {
+	ID        string   `json:"ProjectID"`
+	Name      string   `json:"Name"`
+	CreatedAt int64    `json:"CreatedAt"`
+	Members   []Member `json:"Members"`
+}
+
+// GetProjectDetails fetches details of the input user
+func GetProjectDetails(c types.Credentials) (ProjectDetails, error) {
+	token, _ := jwt.Parse(c.Token, nil)
+	if token == nil {
+		return ProjectDetails{}, nil
+	}
+	Username, _ := token.Claims.(jwt.MapClaims)["username"].(string)
+	resp, err := SendRequest(SendRequestParams{Endpoint: c.Endpoint + utils.AuthAPIPath + "/get_user_with_project/" + Username, Token: "Bearer " + c.Token}, []byte{}, string(types.Get))
+	if err != nil {
+		return ProjectDetails{}, err
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		return ProjectDetails{}, err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		var project ProjectDetails
+		err = json.Unmarshal(bodyBytes, &project)
+		if err != nil {
+			return ProjectDetails{}, err
+		}
+		if len(project.Errors) > 0 {
+			return ProjectDetails{}, errors.New(project.Errors[0].Message)
+		}
+
+		return project, nil
+	} else {
+		return ProjectDetails{}, errors.New("Unmatched status code:" + string(bodyBytes))
+	}
+}
