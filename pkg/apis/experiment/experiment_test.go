@@ -12,7 +12,7 @@ import (
 
 func setupTestCredentials() types.Credentials {
 	return types.Credentials{
-		ServerEndpoint: "http://127.0.0.1:43053",
+		ServerEndpoint: "http://127.0.0.1:35961",
 		Token:          "test-token",
 	}
 }
