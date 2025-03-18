@@ -5,20 +5,45 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/litmuschaos/litmus-go-sdk/pkg/apis"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
 	"github.com/litmuschaos/litmus/chaoscenter/graphql/server/graph/model"
 	"github.com/stretchr/testify/assert"
 )
 
-func setupTestCredentials() types.Credentials {
-	return types.Credentials{
-		ServerEndpoint: "http://127.0.0.1:35961",
-		Token:          "test-token",
+// NewLitmusClient creates and authenticates a new client with username/password
+func NewLitmusClient(endpoint, username, password string) (*LitmusClient, error) {
+	// Implementation should match the one in main.go
+	authResp, err := apis.Auth(types.AuthInput{
+		Endpoint: endpoint,
+		Username: username,
+		Password: password,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("authentication failed: %w", err)
 	}
+
+	return &LitmusClient{
+		credentials: types.Credentials{
+			ServerEndpoint: endpoint,
+			Token:          authResp.AccessToken,
+		},
+	}, nil
+}
+
+// LitmusClient provides methods to interact with Litmus Chaos API
+type LitmusClient struct {
+	credentials types.Credentials
+}
+
+func setupTestClient() (*LitmusClient, error) {
+	return NewLitmusClient("http://127.0.0.1:35961", "admin", "LitmusChaos123@")
 }
 
 func TestSaveExperiment(t *testing.T) {
-	cred := setupTestCredentials()
+	client, err := setupTestClient()
+	assert.NoError(t, err, "Failed to create Litmus client")
+
 	projectID := "test-project-id"
 
 	request := model.SaveChaosExperimentRequest{
@@ -26,7 +51,7 @@ func TestSaveExperiment(t *testing.T) {
 		Name: "test-experiment",
 	}
 
-	result, err := SaveExperiment(projectID, request, cred)
+	result, err := SaveExperiment(projectID, request, client.credentials)
 	if err != nil {
 		fmt.Printf("API call error: %v\n", err)
 	} else {
@@ -38,11 +63,13 @@ func TestSaveExperiment(t *testing.T) {
 }
 
 func TestRunExperiment(t *testing.T) {
-	cred := setupTestCredentials()
+	client, err := setupTestClient()
+	assert.NoError(t, err, "Failed to create Litmus client")
+
 	projectID := "test-project-id"
 	experimentID := "test-experiment-id"
 
-	result, err := RunExperiment(projectID, experimentID, cred)
+	result, err := RunExperiment(projectID, experimentID, client.credentials)
 	if err != nil {
 		fmt.Printf("API call error: %v\n", err)
 	} else {
@@ -53,7 +80,9 @@ func TestRunExperiment(t *testing.T) {
 }
 
 func TestGetExperimentList(t *testing.T) {
-	cred := setupTestCredentials()
+	client, err := setupTestClient()
+	assert.NoError(t, err, "Failed to create Litmus client")
+
 	projectID := "test-project-id"
 
 	request := model.ListExperimentRequest{
@@ -63,7 +92,7 @@ func TestGetExperimentList(t *testing.T) {
 		},
 	}
 
-	result, err := GetExperimentList(projectID, request, cred)
+	result, err := GetExperimentList(projectID, request, client.credentials)
 	if err != nil {
 		fmt.Printf("API call error: %v\n", err)
 	} else {
@@ -85,7 +114,9 @@ func TestGetExperimentList(t *testing.T) {
 }
 
 func TestGetExperimentRunsList(t *testing.T) {
-	cred := setupTestCredentials()
+	client, err := setupTestClient()
+	assert.NoError(t, err, "Failed to create Litmus client")
+
 	projectID := "test-project-id"
 
 	request := model.ListExperimentRunRequest{
@@ -95,7 +126,7 @@ func TestGetExperimentRunsList(t *testing.T) {
 		},
 	}
 
-	result, err := GetExperimentRunsList(projectID, request, cred)
+	result, err := GetExperimentRunsList(projectID, request, client.credentials)
 	if err != nil {
 		fmt.Printf("API call error: %v\n", err)
 	} else {
@@ -118,11 +149,13 @@ func TestGetExperimentRunsList(t *testing.T) {
 }
 
 func TestDeleteChaosExperiment(t *testing.T) {
-	cred := setupTestCredentials()
+	client, err := setupTestClient()
+	assert.NoError(t, err, "Failed to create Litmus client")
+
 	projectID := "test-project-id"
 	experimentID := "test-experiment-id"
 
-	result, err := DeleteChaosExperiment(projectID, &experimentID, cred)
+	result, err := DeleteChaosExperiment(projectID, &experimentID, client.credentials)
 	if err != nil {
 		fmt.Printf("API call error: %v\n", err)
 	} else {
@@ -135,7 +168,9 @@ func TestDeleteChaosExperiment(t *testing.T) {
 }
 
 func TestCreateExperiment(t *testing.T) {
-	cred := setupTestCredentials()
+	client, err := setupTestClient()
+	assert.NoError(t, err, "Failed to create Litmus client")
+
 	projectID := "test-project-id"
 
 	request := model.SaveChaosExperimentRequest{
@@ -143,7 +178,7 @@ func TestCreateExperiment(t *testing.T) {
 		Name: "test-experiment",
 	}
 
-	result, err := CreateExperiment(projectID, request, cred)
+	result, err := CreateExperiment(projectID, request, client.credentials)
 	if err != nil {
 		fmt.Printf("API call error: %v\n", err)
 	} else {
