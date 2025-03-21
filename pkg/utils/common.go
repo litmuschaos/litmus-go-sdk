@@ -26,14 +26,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/fatih/color"
+	"github.com/litmuschaos/litmus-go-sdk/pkg/logger"
 	"gopkg.in/yaml.v2"
-)
-
-var (
-	Red     = color.New(color.FgRed)
-	White_B = color.New(color.FgWhite, color.Bold)
-	White   = color.New(color.FgWhite)
 )
 
 func Scanner() string {
@@ -42,13 +36,14 @@ func Scanner() string {
 		return scanner.Text()
 	}
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+		logger.Errorf("reading standard input: %v", err)
 	}
 	return ""
 }
+
 func PrintError(err error) {
 	if err != nil {
-		Red.Println(err)
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 }
@@ -61,15 +56,14 @@ func PrintInJsonFormat(inf interface{}) {
 	err = json.Indent(&out, byt, "", "  ")
 	PrintError(err)
 
-	White.Println(out.String())
-
+	logger.Info(out.String())
 }
 
 func PrintInYamlFormat(inf interface{}) {
 	byt, err := yaml.Marshal(inf)
 	PrintError(err)
 
-	White.Println(string(byt))
+	logger.Info(string(byt))
 }
 
 func GenerateRandomString(n int) (string, error) {
@@ -95,12 +89,12 @@ func CheckKeyValueFormat(str string) bool {
 	for _, el := range selectors {
 		kv := strings.Split(el, "=")
 		if len(kv) != 2 {
-			Red.Println("nodeselector is not correct. Correct format: \"key1=value2,key2=value2\"")
+			logger.Error("nodeselector is not correct. Correct format: \"key1=value2,key2=value2\"")
 			return false
 		}
 
 		if strings.Contains(kv[0], "\"") || strings.Contains(kv[1], "\"") {
-			Red.Println("nodeselector contains escape character(s). Correct format: \"key1=value2,key2=value2\"")
+			logger.Error("nodeselector contains escape character(s). Correct format: \"key1=value2,key2=value2\"")
 			return false
 		}
 	}

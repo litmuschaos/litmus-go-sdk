@@ -25,6 +25,7 @@ import (
 
 	"github.com/litmuschaos/litmus-go-sdk/pkg/utils"
 
+	"github.com/litmuschaos/litmus-go-sdk/pkg/logger"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
 )
 
@@ -74,7 +75,9 @@ func CreateProjectRequest(projectName string, cred types.Credentials) (CreatePro
 			return CreateProjectResponse{}, errors.New(project.Errors[0].Message)
 		}
 
-		utils.White_B.Println("project/" + project.Data.Name + " created")
+		logger.InfoWithValues("Project created", map[string]interface{}{
+			"project": project.Data.Name,
+		})
 		return project, nil
 	} else {
 		return CreateProjectResponse{}, errors.New("Unmatched status code:" + string(bodyBytes))
@@ -85,7 +88,7 @@ type ListProjectResponse struct {
 	Message string `json:"message"`
 	Data    struct {
 		Projects []struct {
-			ID        string `json:"projectID"` 
+			ID        string `json:"projectID"`
 			Name      string `json:"name"`
 			CreatedAt int64  `json:"createdAt"`
 		} `json:"projects"`

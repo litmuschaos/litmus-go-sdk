@@ -2,23 +2,23 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"runtime"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/apis"
+	"github.com/litmuschaos/litmus-go-sdk/pkg/logger"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/utils"
 )
 
 func init() {
-	log.Printf("go version: %s", runtime.Version())
-	log.Printf("go os/arch: %s/%s", runtime.GOOS, runtime.GOARCH)
+	logger.Infof("go version: %s", runtime.Version())
+	logger.Infof("go os/arch: %s/%s", runtime.GOOS, runtime.GOARCH)
 
 	err := envconfig.Process("", &utils.Config)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err.Error())
 	}
 }
 
@@ -26,29 +26,36 @@ func main() {
 	// Initialize client
 	client, err := NewLitmusClient(utils.Config.Endpoint, utils.Config.Username, utils.Config.Password)
 	if err != nil {
-		log.Fatalf("Failed to initialize client: %v", err)
+		logger.Fatalf("Failed to initialize client: %v", err)
 	}
 
 	// Example API call 1: List projects
 	projects, err := client.ListProjects()
 	if err != nil {
-		log.Fatalf("Failed to list projects: %v", err)
+		logger.Fatalf("Failed to list projects: %v", err)
 	}
-	fmt.Printf("Projects: %+v\n", projects)
+	logger.InfoWithValues("Projects", map[string]interface{}{
+		"projects": projects,
+	})
 
 	// Example API call 2: Create a project
 	newProject, err := client.CreateProject("my-new-project")
 	if err != nil {
-		log.Fatalf("Failed to create project: %v", err)
+		logger.Fatalf("Failed to create project: %v", err)
 	}
-	fmt.Printf("Created project: %s with ID: %s\n", newProject.Data.Name, newProject.Data.ID)
+	logger.InfoWithValues("Created project", map[string]interface{}{
+		"name": newProject.Data.Name,
+		"id":   newProject.Data.ID,
+	})
 
 	// Example API call 3: Get project details
 	details, err := client.GetProjectDetails()
 	if err != nil {
-		log.Fatalf("Failed to get project details: %v", err)
+		logger.Fatalf("Failed to get project details: %v", err)
 	}
-	fmt.Printf("Project details: %+v\n", details)
+	logger.InfoWithValues("Project details", map[string]interface{}{
+		"details": details,
+	})
 }
 
 // LitmusClient provides methods to interact with Litmus Chaos API

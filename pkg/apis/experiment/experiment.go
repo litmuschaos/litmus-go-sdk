@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	"github.com/litmuschaos/litmus-go-sdk/pkg/apis"
+	"github.com/litmuschaos/litmus-go-sdk/pkg/logger"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/utils"
 	"github.com/litmuschaos/litmus/chaoscenter/graphql/server/graph/model"
@@ -58,6 +59,9 @@ func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, 
 
 	defer resp.Body.Close()
 	if err != nil {
+		logger.ErrorWithValues("Error in saving Chaos Experiment", map[string]interface{}{
+			"error": err.Error(),
+		})
 		return RunExperimentResponse{}, errors.New("Error in saving Chaos Experiment: " + err.Error())
 	}
 
@@ -67,15 +71,24 @@ func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, 
 		err = json.Unmarshal(bodyBytes, &savedExperiment)
 
 		if err != nil {
+			logger.ErrorWithValues("Error in saving Chaos Experiment", map[string]interface{}{
+				"error": err.Error(),
+			})
 			return RunExperimentResponse{}, errors.New("Error in saving Chaos Experiment: " + err.Error())
 		}
 
 		// Errors present
 		if len(savedExperiment.Errors) > 0 {
+			logger.ErrorWithValues("Error in saving Chaos Experiment", map[string]interface{}{
+				"error": savedExperiment.Errors[0].Message,
+			})
 			return RunExperimentResponse{}, errors.New(savedExperiment.Errors[0].Message)
 		}
 
 	} else {
+		logger.ErrorWithValues("Error in saving Chaos Experiment", map[string]interface{}{
+			"status_code": resp.StatusCode,
+		})
 		return RunExperimentResponse{}, errors.New("error in saving Chaos Experiment")
 	}
 
@@ -84,12 +97,18 @@ func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, 
 	resp, err = apis.SendRequest(apis.SendRequestParams{Endpoint: cred.ServerEndpoint + utils.GQLAPIPath, Token: cred.Token}, []byte(runQuery), string(types.Post))
 
 	if err != nil {
+		logger.ErrorWithValues("Error in Running Chaos Experiment", map[string]interface{}{
+			"error": err.Error(),
+		})
 		return RunExperimentResponse{}, errors.New("Error in Running Chaos Experiment: " + err.Error())
 	}
 
 	bodyBytes, err = io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	if err != nil {
+		logger.ErrorWithValues("Error in Running Chaos Experiment", map[string]interface{}{
+			"error": err.Error(),
+		})
 		return RunExperimentResponse{}, errors.New("Error in Running Chaos Experiment: " + err.Error())
 	}
 
@@ -97,14 +116,23 @@ func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, 
 		var runExperiment RunExperimentResponse
 		err = json.Unmarshal(bodyBytes, &runExperiment)
 		if err != nil {
+			logger.ErrorWithValues("Error in Running Chaos Experiment", map[string]interface{}{
+				"error": err.Error(),
+			})
 			return RunExperimentResponse{}, errors.New("Error in Running Chaos Experiment: " + err.Error())
 		}
 
 		if len(runExperiment.Errors) > 0 {
+			logger.ErrorWithValues("Error in Running Chaos Experiment", map[string]interface{}{
+				"error": runExperiment.Errors[0].Message,
+			})
 			return RunExperimentResponse{}, errors.New(runExperiment.Errors[0].Message)
 		}
 		return runExperiment, nil
 	} else {
+		logger.ErrorWithValues("Error in Running Chaos Experiment", map[string]interface{}{
+			"status_code": resp.StatusCode,
+		})
 		return RunExperimentResponse{}, err
 	}
 }
