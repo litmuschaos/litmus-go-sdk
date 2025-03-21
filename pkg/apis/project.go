@@ -18,6 +18,7 @@ package apis
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -52,7 +53,7 @@ func CreateProjectRequest(projectName string, cred types.Credentials) (CreatePro
 	if err != nil {
 		return CreateProjectResponse{}, err
 	}
-	resp, err := SendRequest(SendRequestParams{cred.Endpoint + utils.AuthAPIPath + "/create_project", "Bearer " + cred.Token}, payloadBytes, string(types.Post))
+	resp, err := SendRequest(SendRequestParams{fmt.Sprintf("%s%s/create_project", cred.Endpoint, utils.AuthAPIPath), fmt.Sprintf("Bearer %s", cred.Token)}, payloadBytes, string(types.Post))
 	if err != nil {
 		return CreateProjectResponse{}, err
 	}
@@ -102,7 +103,7 @@ type ListProjectResponse struct {
 
 func ListProject(cred types.Credentials) (ListProjectResponse, error) {
 
-	resp, err := SendRequest(SendRequestParams{Endpoint: cred.Endpoint + utils.AuthAPIPath + "/list_projects", Token: "Bearer " + cred.Token}, []byte{}, string(types.Get))
+	resp, err := SendRequest(SendRequestParams{Endpoint: fmt.Sprintf("%s%s/list_projects", cred.Endpoint, utils.AuthAPIPath), Token: fmt.Sprintf("Bearer %s", cred.Token)}, []byte{}, string(types.Get))
 	if err != nil {
 		return ListProjectResponse{}, err
 	}
@@ -164,7 +165,7 @@ func GetProjectDetails(c types.Credentials) (ProjectDetails, error) {
 		return ProjectDetails{}, nil
 	}
 	Username, _ := token.Claims.(jwt.MapClaims)["username"].(string)
-	resp, err := SendRequest(SendRequestParams{Endpoint: c.Endpoint + utils.AuthAPIPath + "/get_user_with_project/" + Username, Token: "Bearer " + c.Token}, []byte{}, string(types.Get))
+	resp, err := SendRequest(SendRequestParams{Endpoint: fmt.Sprintf("%s%s/get_user_with_project/%s", c.Endpoint, utils.AuthAPIPath, Username), Token: fmt.Sprintf("Bearer %s", c.Token)}, []byte{}, string(types.Get))
 	if err != nil {
 		return ProjectDetails{}, err
 	}
