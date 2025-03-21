@@ -19,8 +19,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 
 	"github.com/golang-jwt/jwt"
 
@@ -30,15 +28,18 @@ import (
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
 )
 
+// Common response error structure
+type ErrorResponse struct {
+	Message string   `json:"message"`
+	Path    []string `json:"path"`
+}
+
 type CreateProjectResponse struct {
 	Data struct {
 		Name string `json:"name"`
 		ID   string `json:"projectID"`
 	} `json:"data"`
-	Errors []struct {
-		Message string   `json:"message"`
-		Path    []string `json:"path"`
-	} `json:"errors"`
+	Errors []ErrorResponse `json:"errors"`
 }
 
 type createProjectPayload struct {
@@ -46,43 +47,34 @@ type createProjectPayload struct {
 }
 
 func CreateProjectRequest(projectName string, cred types.Credentials) (CreateProjectResponse, error) {
+	endpoint := fmt.Sprintf("%s%s/create_project", cred.Endpoint, utils.AuthAPIPath)
+
 	payloadBytes, err := json.Marshal(createProjectPayload{
 		ProjectName: projectName,
 	})
-
-	if err != nil {
-		return CreateProjectResponse{}, err
-	}
-	resp, err := SendRequest(SendRequestParams{fmt.Sprintf("%s%s/create_project", cred.Endpoint, utils.AuthAPIPath), fmt.Sprintf("Bearer %s", cred.Token)}, payloadBytes, string(types.Post))
 	if err != nil {
 		return CreateProjectResponse{}, err
 	}
 
-	bodyBytes, err := io.ReadAll(resp.Body)
+	bodyBytes, err := utils.SendHTTPRequest(endpoint, cred.Token, payloadBytes, string(types.Post))
 	if err != nil {
 		return CreateProjectResponse{}, err
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		var project CreateProjectResponse
-		err = json.Unmarshal(bodyBytes, &project)
-		if err != nil {
-			return CreateProjectResponse{}, err
-		}
-
-		if len(project.Errors) > 0 {
-			return CreateProjectResponse{}, errors.New(project.Errors[0].Message)
-		}
-
-		logger.InfoWithValues("Project created", map[string]interface{}{
-			"project": project.Data.Name,
-		})
-		return project, nil
-	} else {
-		return CreateProjectResponse{}, errors.New("Unmatched status code:" + string(bodyBytes))
+	var project CreateProjectResponse
+	err = json.Unmarshal(bodyBytes, &project)
+	if err != nil {
+		return CreateProjectResponse{}, err
 	}
+
+	if len(project.Errors) > 0 {
+		return CreateProjectResponse{}, errors.New(project.Errors[0].Message)
+	}
+
+	logger.InfoWithValues("Project created", map[string]interface{}{
+		"project": project.Data.Name,
+	})
+	return project, nil
 }
 
 type ListProjectResponse struct {
@@ -95,49 +87,33 @@ type ListProjectResponse struct {
 		} `json:"projects"`
 		TotalNumberOfProjects int `json:"totalNumberOfProjects"`
 	} `json:"data"`
-	Errors []struct {
-		Message string   `json:"message"`
-		Path    []string `json:"path"`
-	} `json:"errors"`
+	Errors []ErrorResponse `json:"errors"`
 }
 
 func ListProject(cred types.Credentials) (ListProjectResponse, error) {
+	endpoint := fmt.Sprintf("%s%s/list_projects", cred.Endpoint, utils.AuthAPIPath)
 
-	resp, err := SendRequest(SendRequestParams{Endpoint: fmt.Sprintf("%s%s/list_projects", cred.Endpoint, utils.AuthAPIPath), Token: fmt.Sprintf("Bearer %s", cred.Token)}, []byte{}, string(types.Get))
+	bodyBytes, err := utils.SendHTTPRequest(endpoint, cred.Token, []byte{}, string(types.Get))
 	if err != nil {
 		return ListProjectResponse{}, err
 	}
 
-	bodyBytes, err := io.ReadAll(resp.Body)
+	var data ListProjectResponse
+	err = json.Unmarshal(bodyBytes, &data)
 	if err != nil {
 		return ListProjectResponse{}, err
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
-		var data ListProjectResponse
-		err = json.Unmarshal(bodyBytes, &data)
-		if err != nil {
-			return ListProjectResponse{}, err
-
-		}
-
-		if len(data.Errors) > 0 {
-			return ListProjectResponse{}, errors.New(data.Errors[0].Message)
-		}
-
-		return data, nil
-	} else {
-		return ListProjectResponse{}, errors.New("Unmatched status code:" + string(bodyBytes))
+	if len(data.Errors) > 0 {
+		return ListProjectResponse{}, errors.New(data.Errors[0].Message)
 	}
+
+	return data, nil
 }
 
 type ProjectDetails struct {
-	Data   Data `json:"data"`
-	Errors []struct {
-		Message string   `json:"message"`
-		Path    []string `json:"path"`
-	} `json:"errors"`
+	Data   Data            `json:"data"`
+	Errors []ErrorResponse `json:"errors"`
 }
 
 type Data struct {
@@ -164,30 +140,24 @@ func GetProjectDetails(c types.Credentials) (ProjectDetails, error) {
 	if token == nil {
 		return ProjectDetails{}, nil
 	}
-	Username, _ := token.Claims.(jwt.MapClaims)["username"].(string)
-	resp, err := SendRequest(SendRequestParams{Endpoint: fmt.Sprintf("%s%s/get_user_with_project/%s", c.Endpoint, utils.AuthAPIPath, Username), Token: fmt.Sprintf("Bearer %s", c.Token)}, []byte{}, string(types.Get))
+
+	username, _ := token.Claims.(jwt.MapClaims)["username"].(string)
+	endpoint := fmt.Sprintf("%s%s/get_user_with_project/%s", c.Endpoint, utils.AuthAPIPath, username)
+
+	bodyBytes, err := utils.SendHTTPRequest(endpoint, c.Token, []byte{}, string(types.Get))
 	if err != nil {
 		return ProjectDetails{}, err
 	}
 
-	bodyBytes, err := io.ReadAll(resp.Body)
-	defer resp.Body.Close()
+	var project ProjectDetails
+	err = json.Unmarshal(bodyBytes, &project)
 	if err != nil {
 		return ProjectDetails{}, err
 	}
 
-	if resp.StatusCode == http.StatusOK {
-		var project ProjectDetails
-		err = json.Unmarshal(bodyBytes, &project)
-		if err != nil {
-			return ProjectDetails{}, err
-		}
-		if len(project.Errors) > 0 {
-			return ProjectDetails{}, errors.New(project.Errors[0].Message)
-		}
-
-		return project, nil
-	} else {
-		return ProjectDetails{}, errors.New("Unmatched status code:" + string(bodyBytes))
+	if len(project.Errors) > 0 {
+		return ProjectDetails{}, errors.New(project.Errors[0].Message)
 	}
+
+	return project, nil
 }
