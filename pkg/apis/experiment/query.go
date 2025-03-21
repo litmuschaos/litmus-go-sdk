@@ -51,4 +51,10 @@ const (
                         experimentRunID: $experimentRunID
                       )
                     }`
+
+	RunExperimentQuery = `mutation runChaosExperiment($experimentID: String!, $projectID: String!) {
+                      runChaosExperiment(experimentID: $experimentID, projectID: $projectID) {
+                        notifyID
+                      }
+                    }`
 )

@@ -45,12 +45,17 @@ func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, 
 	}
 
 	// Run the experiment
-	runQuery := fmt.Sprintf(`mutation{ \n runChaosExperiment(experimentID:  \"%s\", projectID:  \"%s\"){\n notifyID \n}}`, requestData.ID, pid)
 	runExperiment, err := utils.SendGraphQLRequest[RunExperimentResponse](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
 		cred.Token,
-		runQuery,
-		nil,
+		RunExperimentQuery,
+		struct {
+			ExperimentID string
+			ProjectID    string
+		}{
+			ExperimentID: requestData.ID,
+			ProjectID:    pid,
+		},
 		"Error in running Chaos Experiment",
 	)
 	if err != nil {
@@ -78,12 +83,17 @@ func SaveExperiment(pid string, requestData model.SaveChaosExperimentRequest, cr
 }
 
 func RunExperiment(pid string, eid string, cred types.Credentials) (RunExperimentResponse, error) {
-	runQuery := fmt.Sprintf(`mutation{ \n runChaosExperiment(experimentID:  \"%s\", projectID:  \"%s\"){\n notifyID \n}}`, eid, pid)
 	return utils.SendGraphQLRequest[RunExperimentResponse](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
 		cred.Token,
-		runQuery,
-		nil,
+		RunExperimentQuery,
+		struct {
+			ExperimentID string
+			ProjectID    string
+		}{
+			ExperimentID: eid,
+			ProjectID:    pid,
+		},
 		"Error in running Chaos Experiment",
 	)
 }
