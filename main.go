@@ -4,19 +4,27 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 
+	"github.com/kelseyhightower/envconfig"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/apis"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
+	"github.com/litmuschaos/litmus-go-sdk/pkg/utils"
 )
 
-func main() {
-	// Get credentials from environment variables or flags
-	endpoint := getEnv("LITMUS_ENDPOINT", "http://localhost:8080")
-	username := getEnv("LITMUS_USERNAME", "admin")
-	password := getEnv("LITMUS_PASSWORD", "litmus")
+func init() {
+	log.Printf("go version: %s", runtime.Version())
+	log.Printf("go os/arch: %s/%s", runtime.GOOS, runtime.GOARCH)
 
+	err := envconfig.Process("", &utils.Config)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func main() {
 	// Initialize client
-	client, err := NewLitmusClient(endpoint, username, password)
+	client, err := NewLitmusClient(utils.Config.Endpoint, utils.Config.Username, utils.Config.Password)
 	if err != nil {
 		log.Fatalf("Failed to initialize client: %v", err)
 	}
