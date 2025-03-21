@@ -27,7 +27,7 @@ func TestCreateProject(t *testing.T) {
 	assert.NoError(t, err)
 
 	projectID := uuid.New().String()
-	project, err := client.CreateProject("test-project-" + projectID)
+	project, err := client.CreateProject(fmt.Sprintf("test-project-%s" ,projectID))
 	assert.NoError(t, err, "Failed to create project")
 	assert.NotNil(t, project, "Created project should not be nil")
 }
