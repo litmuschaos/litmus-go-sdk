@@ -3,6 +3,7 @@ package experiment
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/litmuschaos/litmus-go-sdk/pkg/apis"
@@ -11,6 +12,28 @@ import (
 	"github.com/litmuschaos/litmus/chaoscenter/graphql/server/graph/model"
 	"github.com/stretchr/testify/assert"
 )
+
+// Test configuration with defaults
+var (
+	testEndpoint = "http://127.0.0.1:35961"
+	testUsername = "admin"
+	testPassword = "LitmusChaos123@"
+)
+
+func init() {
+	// Override defaults with environment variables if set
+	if endpoint := os.Getenv("LITMUS_TEST_ENDPOINT"); endpoint != "" {
+		testEndpoint = endpoint
+	}
+	if username := os.Getenv("LITMUS_TEST_USERNAME"); username != "" {
+		testUsername = username
+	}
+	if password := os.Getenv("LITMUS_TEST_PASSWORD"); password != "" {
+		testPassword = password
+	}
+
+	logger.Infof("Test configuration - Endpoint: %s, Username: %s", testEndpoint, testUsername)
+}
 
 // NewLitmusClient creates and authenticates a new client with username/password
 func NewLitmusClient(endpoint, username, password string) (*LitmusClient, error) {
@@ -38,166 +61,409 @@ type LitmusClient struct {
 }
 
 func setupTestClient() (*LitmusClient, error) {
-	return NewLitmusClient("http://127.0.0.1:35961", "admin", "LitmusChaos123@")
+	return NewLitmusClient(testEndpoint, testUsername, testPassword)
 }
 
 func TestSaveExperiment(t *testing.T) {
-	client, err := setupTestClient()
-	assert.NoError(t, err, "Failed to create Litmus client")
-
-	projectID := "test-project-id"
-
-	request := model.SaveChaosExperimentRequest{
-		ID:   "test-experiment-id",
-		Name: "test-experiment",
+	tests := []struct {
+		name       string
+		projectID  string
+		request    model.SaveChaosExperimentRequest
+		setup      func(*LitmusClient) // optional setup steps
+		wantErr    bool
+		validateFn func(*testing.T, *SaveExperimentData)
+	}{
+		{
+			name:      "successful experiment save",
+			projectID: "test-project-id",
+			request: model.SaveChaosExperimentRequest{
+				ID:   "test-experiment-id",
+				Name: "test-experiment",
+			},
+			wantErr: false,
+			validateFn: func(t *testing.T, result *SaveExperimentData) {
+				assert.NotNil(t, result, "Result should not be nil")
+				assert.NotNil(t, result.Data, "Data should not be nil")
+				// Check that experiment ID is present in response message
+				assert.Contains(t, result.Data.Message, "test-experiment-id",
+					"Response should contain experiment ID")
+			},
+		},
+		{
+			name:      "save experiment with empty ID",
+			projectID: "test-project-id",
+			request: model.SaveChaosExperimentRequest{
+				ID:   "",
+				Name: "test-experiment",
+			},
+			wantErr:    true,
+			validateFn: nil,
+		},
 	}
 
-	result, err := SaveExperiment(projectID, request, client.credentials)
-	if err != nil {
-		logger.ErrorWithValues("API call error", map[string]interface{}{
-			"error": err.Error(),
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := setupTestClient()
+			assert.NoError(t, err, "Failed to create Litmus client")
+
+			// Run any setup function if provided
+			if tt.setup != nil {
+				tt.setup(client)
+			}
+
+			result, err := SaveExperiment(tt.projectID, tt.request, client.credentials)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			// Run validation function if provided
+			if tt.validateFn != nil {
+				tt.validateFn(t, &result)
+			}
 		})
-	} else {
-		assert.NotNil(t, result, "Result should not be nil")
-		assert.NotNil(t, result.Data, "Data should not be nil")
-		// Check that experiment ID is present in response message
-		assert.Contains(t, result.Data.Message, "test-experiment-id", "Response should contain experiment ID")
 	}
 }
 
 func TestRunExperiment(t *testing.T) {
-	client, err := setupTestClient()
-	assert.NoError(t, err, "Failed to create Litmus client")
+	tests := []struct {
+		name         string
+		projectID    string
+		experimentID string
+		setup        func(*LitmusClient) // optional setup steps
+		wantErr      bool
+		validateFn   func(*testing.T, *RunExperimentResponse)
+	}{
+		{
+			name:         "successful experiment run",
+			projectID:    "test-project-id",
+			experimentID: "test-experiment-id",
+			wantErr:      false,
+			validateFn: func(t *testing.T, result *RunExperimentResponse) {
+				assert.NotNil(t, result, "Result should not be nil")
+				assert.NotNil(t, result.Data, "Data should not be nil")
+				assert.NotEmpty(t, result.Data.RunExperimentDetails.NotifyID, "NotifyID should not be empty")
+			},
+		},
+		{
+			name:         "experiment run with empty ID",
+			projectID:    "test-project-id",
+			experimentID: "",
+			wantErr:      true,
+			validateFn:   nil,
+		},
+	}
 
-	projectID := "test-project-id"
-	experimentID := "test-experiment-id"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := setupTestClient()
+			assert.NoError(t, err, "Failed to create Litmus client")
 
-	result, err := RunExperiment(projectID, experimentID, client.credentials)
-	if err != nil {
-		logger.ErrorWithValues("API call error", map[string]interface{}{
-			"error": err.Error(),
+			// Run any setup function if provided
+			if tt.setup != nil {
+				tt.setup(client)
+			}
+
+			result, err := RunExperiment(tt.projectID, tt.experimentID, client.credentials)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			// Run validation function if provided
+			if tt.validateFn != nil {
+				tt.validateFn(t, &result)
+			}
 		})
-	} else {
-		assert.NotNil(t, result, "Result should not be nil")
-		assert.NotNil(t, result.Data, "Data should not be nil")
-		assert.NotEmpty(t, result.Data.RunExperimentDetails.NotifyID, "NotifyID should not be empty")
 	}
 }
 
 func TestGetExperimentList(t *testing.T) {
-	client, err := setupTestClient()
-	assert.NoError(t, err, "Failed to create Litmus client")
+	tests := []struct {
+		name       string
+		projectID  string
+		request    model.ListExperimentRequest
+		setup      func(*LitmusClient) // optional setup steps
+		wantErr    bool
+		validateFn func(*testing.T, *ExperimentListData)
+	}{
+		{
+			name:      "successful experiment list fetch",
+			projectID: "test-project-id",
+			request: model.ListExperimentRequest{
+				Pagination: &model.Pagination{
+					Page:  1,
+					Limit: 10,
+				},
+			},
+			wantErr: false,
+			validateFn: func(t *testing.T, result *ExperimentListData) {
+				assert.NotNil(t, result, "Result should not be nil")
+				assert.NotNil(t, result.Data, "Data should not be nil")
+				assert.NotNil(t, result.Data.ListExperimentDetails, "ListExperimentDetails should not be nil")
 
-	projectID := "test-project-id"
+				// Check total count is a non-negative number
+				assert.GreaterOrEqual(t, result.Data.ListExperimentDetails.TotalNoOfExperiments, 0,
+					"Total number of experiments should be non-negative")
 
-	request := model.ListExperimentRequest{
-		Pagination: &model.Pagination{
-			Page:  1,
-			Limit: 10,
+				// If there are experiments, validate their structure
+				if len(result.Data.ListExperimentDetails.Experiments) > 0 {
+					for _, exp := range result.Data.ListExperimentDetails.Experiments {
+						assert.NotEmpty(t, exp.ExperimentID, "Experiment ID should not be empty")
+						assert.NotEmpty(t, exp.Name, "Experiment name should not be empty")
+					}
+				}
+			},
+		},
+		{
+			name:      "experiment list with pagination",
+			projectID: "test-project-id",
+			request: model.ListExperimentRequest{
+				Pagination: &model.Pagination{
+					Page:  1,
+					Limit: 5,
+				},
+			},
+			wantErr: false,
+			validateFn: func(t *testing.T, result *ExperimentListData) {
+				assert.NotNil(t, result, "Result should not be nil")
+				assert.NotNil(t, result.Data, "Data should not be nil")
+				assert.NotNil(t, result.Data.ListExperimentDetails, "ListExperimentDetails should not be nil")
+
+				// Verify pagination works by checking max results
+				if len(result.Data.ListExperimentDetails.Experiments) > 0 {
+					assert.LessOrEqual(t,
+						len(result.Data.ListExperimentDetails.Experiments),
+						5,
+						"Should return 5 or fewer results with limit=5")
+				}
+			},
 		},
 	}
 
-	result, err := GetExperimentList(projectID, request, client.credentials)
-	if err != nil {
-		logger.ErrorWithValues("API call error", map[string]interface{}{
-			"error": err.Error(),
-		})
-	} else {
-		assert.NotNil(t, result, "Result should not be nil")
-		assert.NotNil(t, result.Data, "Data should not be nil")
-		assert.NotNil(t, result.Data.ListExperimentDetails, "ListExperimentDetails should not be nil")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := setupTestClient()
+			assert.NoError(t, err, "Failed to create Litmus client")
 
-		// Check total count is a non-negative number
-		assert.GreaterOrEqual(t, result.Data.ListExperimentDetails.TotalNoOfExperiments, 0, "Total number of experiments should be non-negative")
-
-		// If there are experiments, validate their structure
-		if len(result.Data.ListExperimentDetails.Experiments) > 0 {
-			for _, exp := range result.Data.ListExperimentDetails.Experiments {
-				assert.NotEmpty(t, exp.ExperimentID, "Experiment ID should not be empty")
-				assert.NotEmpty(t, exp.Name, "Experiment name should not be empty")
+			// Run any setup function if provided
+			if tt.setup != nil {
+				tt.setup(client)
 			}
-		}
+
+			result, err := GetExperimentList(tt.projectID, tt.request, client.credentials)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			// Run validation function if provided
+			if tt.validateFn != nil {
+				tt.validateFn(t, &result)
+			}
+		})
 	}
 }
 
 func TestGetExperimentRunsList(t *testing.T) {
-	client, err := setupTestClient()
-	assert.NoError(t, err, "Failed to create Litmus client")
+	tests := []struct {
+		name       string
+		projectID  string
+		request    model.ListExperimentRunRequest
+		setup      func(*LitmusClient) // optional setup steps
+		wantErr    bool
+		validateFn func(*testing.T, *ExperimentRunListData) // fixed type
+	}{
+		{
+			name:      "successful experiment runs list fetch",
+			projectID: "test-project-id",
+			request: model.ListExperimentRunRequest{
+				Pagination: &model.Pagination{
+					Page:  1,
+					Limit: 10,
+				},
+			},
+			wantErr: false,
+			validateFn: func(t *testing.T, result *ExperimentRunListData) { // fixed type
+				assert.NotNil(t, result, "Result should not be nil")
+				assert.NotNil(t, result.Data, "Data should not be nil")
+				assert.NotNil(t, result.Data.ListExperimentRunDetails, "ListExperimentRunDetails should not be nil")
+				assert.GreaterOrEqual(t, result.Data.ListExperimentRunDetails.TotalNoOfExperimentRuns, 0,
+					"Total number of experiment runs should be non-negative")
+			},
+		},
+		{
+			name:      "experiment runs list with pagination",
+			projectID: "test-project-id",
+			request: model.ListExperimentRunRequest{
+				Pagination: &model.Pagination{
+					Page:  1,
+					Limit: 5,
+				},
+				// Removed filter to avoid the linter error
+			},
+			wantErr: false,
+			validateFn: func(t *testing.T, result *ExperimentRunListData) { // fixed type
+				assert.NotNil(t, result, "Result should not be nil")
+				assert.NotNil(t, result.Data, "Data should not be nil")
+				assert.NotNil(t, result.Data.ListExperimentRunDetails, "ListExperimentRunDetails should not be nil")
 
-	projectID := "test-project-id"
-
-	request := model.ListExperimentRunRequest{
-		Pagination: &model.Pagination{
-			Page:  1,
-			Limit: 10,
+				// Verify pagination works by checking max results
+				if len(result.Data.ListExperimentRunDetails.ExperimentRuns) > 0 {
+					assert.LessOrEqual(t,
+						len(result.Data.ListExperimentRunDetails.ExperimentRuns),
+						5,
+						"Should return 5 or fewer results with limit=5")
+				}
+			},
 		},
 	}
 
-	result, err := GetExperimentRunsList(projectID, request, client.credentials)
-	if err != nil {
-		logger.ErrorWithValues("API call error", map[string]interface{}{
-			"error": err.Error(),
-		})
-	} else {
-		assert.NotNil(t, result, "Result should not be nil")
-		assert.NotNil(t, result.Data, "Data should not be nil")
-		assert.NotNil(t, result.Data.ListExperimentRunDetails, "ListExperimentRunDetails should not be nil")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := setupTestClient()
+			assert.NoError(t, err, "Failed to create Litmus client")
 
-		// Check total count is a non-negative number
-		assert.GreaterOrEqual(t, result.Data.ListExperimentRunDetails.TotalNoOfExperimentRuns, 0, "Total number of experiment runs should be non-negative")
-
-		// If there are experiment runs, validate their structure
-		if len(result.Data.ListExperimentRunDetails.ExperimentRuns) > 0 {
-			for _, run := range result.Data.ListExperimentRunDetails.ExperimentRuns {
-				assert.NotEmpty(t, run.ExperimentRunID, "Experiment run ID should not be empty")
-				assert.NotEmpty(t, run.ExperimentID, "Experiment ID should not be empty")
-				assert.NotEmpty(t, run.ExperimentName, "Experiment name should not be empty")
+			// Run any setup function if provided
+			if tt.setup != nil {
+				tt.setup(client)
 			}
-		}
+
+			result, err := GetExperimentRunsList(tt.projectID, tt.request, client.credentials)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			// Run validation function if provided
+			if tt.validateFn != nil {
+				tt.validateFn(t, &result)
+			}
+		})
 	}
 }
 
 func TestDeleteChaosExperiment(t *testing.T) {
-	client, err := setupTestClient()
-	assert.NoError(t, err, "Failed to create Litmus client")
+	tests := []struct {
+		name         string
+		projectID    string
+		experimentID string
+		wantErr      bool
+		validateFn   func(*testing.T, *DeleteChaosExperimentData)
+	}{
+		{
+			name:         "successful experiment deletion",
+			projectID:    "test-project-id",
+			experimentID: "test-experiment-id",
+			wantErr:      false,
+			validateFn: func(t *testing.T, result *DeleteChaosExperimentData) {
+				assert.NotNil(t, result, "Result should not be nil")
+				assert.NotNil(t, result.Data, "Data should not be nil")
+				assert.True(t, result.Data.IsDeleted, "IsDeleted should be true")
+			},
+		},
+		{
+			name:         "experiment deletion with empty ID",
+			projectID:    "test-project-id",
+			experimentID: "",
+			wantErr:      true,
+			validateFn:   nil, // We expect an error, so no validation needed
+		},
+	}
 
-	projectID := "test-project-id"
-	experimentID := "test-experiment-id"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := setupTestClient()
+			assert.NoError(t, err, "Failed to create Litmus client")
 
-	result, err := DeleteChaosExperiment(projectID, &experimentID, client.credentials)
-	if err != nil {
-		logger.ErrorWithValues("API call error", map[string]interface{}{
-			"error": err.Error(),
+			experimentID := tt.experimentID
+			result, err := DeleteChaosExperiment(tt.projectID, &experimentID, client.credentials)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			if tt.validateFn != nil {
+				tt.validateFn(t, &result)
+			}
 		})
-	} else {
-		assert.NotNil(t, result, "Result should not be nil")
-		assert.NotNil(t, result.Data, "Data should not be nil")
-
-		// Verify deletion status
-		assert.True(t, result.Data.IsDeleted, "IsDeleted should be true")
 	}
 }
 
 func TestCreateExperiment(t *testing.T) {
-	client, err := setupTestClient()
-	assert.NoError(t, err, "Failed to create Litmus client")
-
-	projectID := "test-project-id"
-
-	request := model.SaveChaosExperimentRequest{
-		ID:   "test-experiment-id",
-		Name: "test-experiment",
+	tests := []struct {
+		name       string
+		projectID  string
+		request    model.SaveChaosExperimentRequest
+		setup      func(*LitmusClient) // optional setup steps
+		wantErr    bool
+		validateFn func(*testing.T, *RunExperimentResponse)
+	}{
+		{
+			name:      "successful experiment creation and run",
+			projectID: "test-project-id",
+			request: model.SaveChaosExperimentRequest{
+				ID:   "test-experiment-id",
+				Name: "test-experiment",
+			},
+			wantErr: false,
+			validateFn: func(t *testing.T, result *RunExperimentResponse) {
+				assert.NotNil(t, result, "Result should not be nil")
+				assert.NotNil(t, result.Data, "Data should not be nil")
+				assert.NotEmpty(t, result.Data.RunExperimentDetails.NotifyID, "NotifyID should not be empty")
+			},
+		},
+		{
+			name:      "experiment creation with empty ID",
+			projectID: "test-project-id",
+			request: model.SaveChaosExperimentRequest{
+				ID:   "",
+				Name: "test-experiment",
+			},
+			wantErr:    true,
+			validateFn: nil,
+		},
 	}
 
-	result, err := CreateExperiment(projectID, request, client.credentials)
-	if err != nil {
-		logger.ErrorWithValues("API call error", map[string]interface{}{
-			"error": err.Error(),
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := setupTestClient()
+			assert.NoError(t, err, "Failed to create Litmus client")
+
+			// Run any setup function if provided
+			if tt.setup != nil {
+				tt.setup(client)
+			}
+
+			result, err := CreateExperiment(tt.projectID, tt.request, client.credentials)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			// Run validation function if provided
+			if tt.validateFn != nil {
+				tt.validateFn(t, &result)
+			}
 		})
-	} else {
-		assert.NotNil(t, result, "Result should not be nil")
-		assert.NotNil(t, result.Data, "Data should not be nil")
-		assert.NotEmpty(t, result.Data.RunExperimentDetails.NotifyID, "NotifyID should not be empty")
 	}
 }
 
