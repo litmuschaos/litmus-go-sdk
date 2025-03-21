@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/litmuschaos/litmus-go-sdk/pkg/logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +29,13 @@ func TestCreateProject(t *testing.T) {
 	assert.NoError(t, err)
 
 	projectID := uuid.New().String()
-	project, err := client.CreateProject(fmt.Sprintf("test-project-%s" ,projectID))
+	projectName := fmt.Sprintf("test-project-%s", projectID)
+	project, err := client.CreateProject(projectName)
 	assert.NoError(t, err, "Failed to create project")
 	assert.NotNil(t, project, "Created project should not be nil")
+
+	logger.InfoWithValues("Project created", map[string]interface{}{
+		"name": projectName,
+		"id":   project.Data.ID,
+	})
 }

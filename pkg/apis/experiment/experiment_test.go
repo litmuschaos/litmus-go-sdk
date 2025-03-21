@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/litmuschaos/litmus-go-sdk/pkg/apis"
+	"github.com/litmuschaos/litmus-go-sdk/pkg/logger"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
 	"github.com/litmuschaos/litmus/chaoscenter/graphql/server/graph/model"
 	"github.com/stretchr/testify/assert"
@@ -53,7 +54,9 @@ func TestSaveExperiment(t *testing.T) {
 
 	result, err := SaveExperiment(projectID, request, client.credentials)
 	if err != nil {
-		fmt.Printf("API call error: %v\n", err)
+		logger.ErrorWithValues("API call error", map[string]interface{}{
+			"error": err.Error(),
+		})
 	} else {
 		assert.NotNil(t, result, "Result should not be nil")
 		assert.NotNil(t, result.Data, "Data should not be nil")
@@ -71,7 +74,9 @@ func TestRunExperiment(t *testing.T) {
 
 	result, err := RunExperiment(projectID, experimentID, client.credentials)
 	if err != nil {
-		fmt.Printf("API call error: %v\n", err)
+		logger.ErrorWithValues("API call error", map[string]interface{}{
+			"error": err.Error(),
+		})
 	} else {
 		assert.NotNil(t, result, "Result should not be nil")
 		assert.NotNil(t, result.Data, "Data should not be nil")
@@ -94,7 +99,9 @@ func TestGetExperimentList(t *testing.T) {
 
 	result, err := GetExperimentList(projectID, request, client.credentials)
 	if err != nil {
-		fmt.Printf("API call error: %v\n", err)
+		logger.ErrorWithValues("API call error", map[string]interface{}{
+			"error": err.Error(),
+		})
 	} else {
 		assert.NotNil(t, result, "Result should not be nil")
 		assert.NotNil(t, result.Data, "Data should not be nil")
@@ -128,7 +135,9 @@ func TestGetExperimentRunsList(t *testing.T) {
 
 	result, err := GetExperimentRunsList(projectID, request, client.credentials)
 	if err != nil {
-		fmt.Printf("API call error: %v\n", err)
+		logger.ErrorWithValues("API call error", map[string]interface{}{
+			"error": err.Error(),
+		})
 	} else {
 		assert.NotNil(t, result, "Result should not be nil")
 		assert.NotNil(t, result.Data, "Data should not be nil")
@@ -157,7 +166,9 @@ func TestDeleteChaosExperiment(t *testing.T) {
 
 	result, err := DeleteChaosExperiment(projectID, &experimentID, client.credentials)
 	if err != nil {
-		fmt.Printf("API call error: %v\n", err)
+		logger.ErrorWithValues("API call error", map[string]interface{}{
+			"error": err.Error(),
+		})
 	} else {
 		assert.NotNil(t, result, "Result should not be nil")
 		assert.NotNil(t, result.Data, "Data should not be nil")
@@ -180,7 +191,9 @@ func TestCreateExperiment(t *testing.T) {
 
 	result, err := CreateExperiment(projectID, request, client.credentials)
 	if err != nil {
-		fmt.Printf("API call error: %v\n", err)
+		logger.ErrorWithValues("API call error", map[string]interface{}{
+			"error": err.Error(),
+		})
 	} else {
 		assert.NotNil(t, result, "Result should not be nil")
 		assert.NotNil(t, result.Data, "Data should not be nil")

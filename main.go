@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"runtime"
 
 	"github.com/kelseyhightower/envconfig"
@@ -95,12 +94,4 @@ func (c *LitmusClient) CreateProject(name string) (apis.CreateProjectResponse, e
 // GetProjectDetails retrieves detailed information about projects
 func (c *LitmusClient) GetProjectDetails() (apis.ProjectDetails, error) {
 	return apis.GetProjectDetails(c.credentials)
-}
-
-// Helper function to get environment variable with fallback
-func getEnv(key, fallback string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
-	}
-	return fallback
 }
