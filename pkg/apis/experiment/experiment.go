@@ -31,11 +31,11 @@ func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, 
 		cred.Token,
 		SaveExperimentQuery,
 		struct {
-			ProjectID                  string
-			SaveChaosExperimentRequest model.SaveChaosExperimentRequest
+			ProjectID string                           `json:"projectID"`
+			Request   model.SaveChaosExperimentRequest `json:"request"`
 		}{
-			ProjectID:                  pid,
-			SaveChaosExperimentRequest: requestData,
+			ProjectID: pid,
+			Request:   requestData,
 		},
 		"Error in saving Chaos Experiment",
 	)
@@ -50,8 +50,8 @@ func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, 
 		cred.Token,
 		RunExperimentQuery,
 		struct {
-			ExperimentID string
-			ProjectID    string
+			ExperimentID string `json:"experimentID"`
+			ProjectID    string `json:"projectID"`
 		}{
 			ExperimentID: requestData.ID,
 			ProjectID:    pid,
@@ -72,11 +72,11 @@ func SaveExperiment(pid string, requestData model.SaveChaosExperimentRequest, cr
 		cred.Token,
 		SaveExperimentQuery,
 		struct {
-			ProjectID                  string
-			SaveChaosExperimentRequest model.SaveChaosExperimentRequest
+			ProjectID string                           `json:"projectID"`
+			Request   model.SaveChaosExperimentRequest `json:"request"`
 		}{
-			ProjectID:                  pid,
-			SaveChaosExperimentRequest: requestData,
+			ProjectID: pid,
+			Request:   requestData,
 		},
 		"Error in saving Chaos Experiment",
 	)
@@ -88,8 +88,8 @@ func RunExperiment(pid string, eid string, cred types.Credentials) (RunExperimen
 		cred.Token,
 		RunExperimentQuery,
 		struct {
-			ExperimentID string
-			ProjectID    string
+			ExperimentID string `json:"experimentID"`
+			ProjectID    string `json:"projectID"`
 		}{
 			ExperimentID: eid,
 			ProjectID:    pid,
@@ -105,11 +105,11 @@ func GetExperimentList(pid string, in model.ListExperimentRequest, cred types.Cr
 		cred.Token,
 		ListExperimentQuery,
 		struct {
-			ProjectID                 string
-			GetChaosExperimentRequest model.ListExperimentRequest
+			ProjectID string                      `json:"projectID"`
+			Request   model.ListExperimentRequest `json:"request"`
 		}{
-			ProjectID:                 pid,
-			GetChaosExperimentRequest: in,
+			ProjectID: pid,
+			Request:   in,
 		},
 		"Error in fetching Chaos Experiments",
 	)
@@ -122,11 +122,11 @@ func GetExperimentRunsList(pid string, in model.ListExperimentRunRequest, cred t
 		cred.Token,
 		ListExperimentRunsQuery,
 		struct {
-			ProjectID                    string
-			GetChaosExperimentRunRequest model.ListExperimentRunRequest
+			ProjectID string                         `json:"projectID"`
+			Request   model.ListExperimentRunRequest `json:"request"`
 		}{
-			ProjectID:                    pid,
-			GetChaosExperimentRunRequest: in,
+			ProjectID: pid,
+			Request:   in,
 		},
 		"Error in fetching Chaos Experiment runs",
 	)
@@ -139,8 +139,9 @@ func DeleteChaosExperiment(projectID string, experimentID *string, cred types.Cr
 		cred.Token,
 		DeleteExperimentQuery,
 		struct {
-			ProjectID    string
-			ExperimentID *string
+			ProjectID       string  `json:"projectID"`
+			ExperimentID    *string `json:"experimentID"`
+			ExperimentRunID *string `json:"experimentRunID,omitempty"`
 		}{
 			ProjectID:    projectID,
 			ExperimentID: experimentID,

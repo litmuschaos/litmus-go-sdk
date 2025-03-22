@@ -52,7 +52,7 @@ const (
                       )
                     }`
 
-	RunExperimentQuery = `mutation runChaosExperiment($experimentID: String!, $projectID: String!) {
+	RunExperimentQuery = `mutation runChaosExperiment($experimentID: String!, $projectID: ID!) {
                       runChaosExperiment(experimentID: $experimentID, projectID: $projectID) {
                         notifyID
                       }
