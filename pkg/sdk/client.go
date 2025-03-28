@@ -29,6 +29,18 @@ type Client interface {
 
 	// Authentication operations
 	Auth() AuthClient
+
+	// Environment operations
+	Environments() EnvironmentClient
+
+	// Experiment operations
+	Experiments() ExperimentClient
+
+	// Infrastructure operations
+	Infrastructure() InfrastructureClient
+
+	// Probe operations
+	Probes() ProbeClient
 }
 
 // ClientOptions contains configuration for the API client
@@ -40,9 +52,13 @@ type ClientOptions struct {
 
 // LitmusClient implements the Client interface
 type LitmusClient struct {
-	credentials   types.Credentials
-	projectClient ProjectClient
-	authClient    AuthClient
+	credentials          types.Credentials
+	projectClient        ProjectClient
+	authClient           AuthClient
+	environmentClient    EnvironmentClient
+	experimentClient     ExperimentClient
+	infrastructureClient InfrastructureClient
+	probeClient          ProbeClient
 }
 
 // NewClient creates a new Litmus API client
@@ -68,6 +84,10 @@ func NewClient(options ClientOptions) (Client, error) {
 
 	client.projectClient = &projectClient{credentials: credentials}
 	client.authClient = &authClient{credentials: credentials}
+	client.environmentClient = &environmentClient{credentials: credentials}
+	client.experimentClient = &experimentClient{credentials: credentials}
+	client.infrastructureClient = &infrastructureClient{credentials: credentials}
+	client.probeClient = &probeClient{credentials: credentials}
 
 	return client, nil
 }
@@ -80,4 +100,24 @@ func (c *LitmusClient) Projects() ProjectClient {
 // Auth returns an AuthClient for authentication operations
 func (c *LitmusClient) Auth() AuthClient {
 	return c.authClient
+}
+
+// Environments returns an EnvironmentClient for environment operations
+func (c *LitmusClient) Environments() EnvironmentClient {
+	return c.environmentClient
+}
+
+// Experiments returns an ExperimentClient for experiment operations
+func (c *LitmusClient) Experiments() ExperimentClient {
+	return c.experimentClient
+}
+
+// Infrastructure returns an InfrastructureClient for infrastructure operations
+func (c *LitmusClient) Infrastructure() InfrastructureClient {
+	return c.infrastructureClient
+}
+
+// Probes returns a ProbeClient for probe operations
+func (c *LitmusClient) Probes() ProbeClient {
+	return c.probeClient
 }
