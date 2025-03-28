@@ -15,7 +15,7 @@ import (
 
 // Test configuration with defaults
 var (
-	testEndpoint = "http://127.0.0.1:35961"
+	testEndpoint = "http://127.0.0.1:39651"
 	testUsername = "admin"
 	testPassword = "LitmusChaos123@"
 )
