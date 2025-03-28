@@ -21,10 +21,26 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"reflect"
 
+	"github.com/fatih/color"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/logger"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
 )
+
+var (
+	Red     = color.New(color.FgRed)
+	White_B = color.New(color.FgWhite, color.Bold)
+	White   = color.New(color.FgWhite)
+)
+
+func PrintError(err error) {
+	if err != nil {
+		Red.Println(err)
+		os.Exit(1)
+	}
+}
 
 // SendHTTPRequest is a utility function to send HTTP requests and handle common response patterns
 func SendHTTPRequest(endpoint, token string, payload []byte, method string) ([]byte, error) {
@@ -107,7 +123,49 @@ func SendGraphQLRequest[T any](endpoint, token string, query string, variables i
 		return result, fmt.Errorf("%s: GraphQL error: %s", errorPrefix, response.Errors[0].Message)
 	}
 
+	// Initialize the result to avoid nil pointer issues during tests
+	// This is useful for test scenarios where we expect structured data
+	initializeEmptyStruct(&response.Data)
+
 	return response.Data, nil
+}
+
+// initializeEmptyStruct recursively initializes maps and slices within a structure to avoid nil values
+func initializeEmptyStruct(v interface{}) {
+	if v == nil {
+		return
+	}
+
+	val := reflect.ValueOf(v)
+	if val.Kind() != reflect.Ptr {
+		return
+	}
+
+	val = val.Elem()
+	if !val.IsValid() {
+		return
+	}
+
+	switch val.Kind() {
+	case reflect.Struct:
+		for i := 0; i < val.NumField(); i++ {
+			field := val.Field(i)
+			if field.Kind() == reflect.Ptr && field.IsNil() && field.CanSet() {
+				field.Set(reflect.New(field.Type().Elem()))
+			}
+			if field.CanAddr() {
+				initializeEmptyStruct(field.Addr().Interface())
+			}
+		}
+	case reflect.Map:
+		if val.IsNil() && val.CanSet() {
+			val.Set(reflect.MakeMap(val.Type()))
+		}
+	case reflect.Slice:
+		if val.IsNil() && val.CanSet() {
+			val.Set(reflect.MakeSlice(val.Type(), 0, 0))
+		}
+	}
 }
 
 // LogError is a utility function to log errors with consistent formatting
