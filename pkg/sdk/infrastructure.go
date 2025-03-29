@@ -123,8 +123,6 @@ func (c *infrastructureClient) Delete(id string)  error {
 
 // Get retrieves infrastructure details
 func (c *infrastructureClient) Get(id string) (interface{}, error) {
-	// Currently, there's no specific API for getting a single infrastructure
-	// We'll get the list and filter for the requested ID
 	if c.credentials.ServerEndpoint == "" {
 		return nil, fmt.Errorf("server endpoint not set in credentials")
 	}

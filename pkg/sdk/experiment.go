@@ -152,8 +152,6 @@ func (c *experimentClient) Update(id string, config map[string]interface{}) (int
 
 // Get retrieves experiment details
 func (c *experimentClient) Get(id string) (interface{}, error) {
-	// Currently, there's no specific API for getting a single experiment
-	// We'll get the list and filter for the requested ID
 	if c.credentials.ServerEndpoint == "" {
 		return nil, fmt.Errorf("server endpoint not set in credentials")
 	}
