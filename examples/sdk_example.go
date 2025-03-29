@@ -123,16 +123,6 @@ func CompleteSDKExample() {
 		"infrastructure": newInfra,
 	})
 
-	// Connect to infrastructure
-	connectParams := map[string]string{
-		"kubeconfig": "/path/to/kubeconfig",
-	}
-	err = client.Infrastructure().Connect("infra-id-123", connectParams)
-	if err != nil {
-		logger.Fatalf("Failed to connect to infrastructure: %v", err)
-	}
-	logger.Info("Connected to infrastructure")
-
 	// ======== Probe Operations ========
 
 	// List probes

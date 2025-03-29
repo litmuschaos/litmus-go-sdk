@@ -16,7 +16,11 @@ limitations under the License.
 package sdk
 
 import (
+	"fmt"
+
+	"github.com/litmuschaos/litmus-go-sdk/pkg/apis/infrastructure"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
+	models "github.com/litmuschaos/litmus/chaoscenter/graphql/server/graph/model"
 )
 
 // InfrastructureClient defines the interface for infrastructure operations
@@ -30,14 +34,8 @@ type InfrastructureClient interface {
 	// Delete removes an infrastructure resource
 	Delete(id string) error
 
-	// Update updates an infrastructure resource
-	Update(id string, config map[string]interface{}) (interface{}, error)
-
 	// Get retrieves infrastructure details
 	Get(id string) (interface{}, error)
-
-	// Connect establishes a connection to an infrastructure
-	Connect(id string, params map[string]string) error
 
 	// Disconnect terminates a connection to an infrastructure
 	Disconnect(id string) error
@@ -50,42 +48,148 @@ type infrastructureClient struct {
 
 // List retrieves all infrastructure resources
 func (c *infrastructureClient) List() (interface{}, error) {
-	// TODO: Implement when infrastructure API is available
-	return nil, nil
+	if c.credentials.ServerEndpoint == "" {
+		return nil, fmt.Errorf("server endpoint not set in credentials")
+	}
+	
+	if c.credentials.ProjectID == "" {
+		return nil, fmt.Errorf("project ID not set in credentials")
+	}
+
+	request := models.ListInfraRequest{}
+	
+	response, err := infrastructure.GetInfraList(c.credentials, c.credentials.ProjectID, request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list infrastructure resources: %w", err)
+	}
+
+	return response.Data.ListInfraDetails, nil
 }
 
 // Create creates a new infrastructure resource
 func (c *infrastructureClient) Create(name string, config map[string]interface{}) (interface{}, error) {
-	// TODO: Implement when infrastructure API is available
-	return nil, nil
+	if c.credentials.ServerEndpoint == "" {
+		return nil, fmt.Errorf("server endpoint not set in credentials")
+	}
+	
+	if c.credentials.ProjectID == "" {
+		return nil, fmt.Errorf("project ID not set in credentials")
+	}
+
+	// Extract values from config or use defaults
+	var (
+		description    = getStringFromConfig(config, "description", fmt.Sprintf("Infrastructure created via Litmus SDK: %s", name))
+		platformName   = getStringFromConfig(config, "platformName", "default-platform")
+		environmentID  = getStringFromConfig(config, "environmentID", "")
+		namespace      = getStringFromConfig(config, "namespace", "litmus")
+		serviceAccount = getStringFromConfig(config, "serviceAccount", "litmus")
+		nsExists       = getBoolFromConfig(config, "nsExists", false)
+		saExists       = getBoolFromConfig(config, "saExists", false)
+		skipSSL        = getBoolFromConfig(config, "skipSSL", false)
+		nodeSelector   = getStringFromConfig(config, "nodeSelector", "")
+		tolerations    = getStringFromConfig(config, "tolerations", "")
+		mode           = getStringFromConfig(config, "mode", string(models.InfraScopeNamespace))
+	)
+
+	// Create infrastructure request
+	infra := types.Infra{
+		ProjectID:      c.credentials.ProjectID,
+		InfraName:      name,
+		Description:    description,
+		PlatformName:   platformName,
+		EnvironmentID:  environmentID,
+		Namespace:      namespace,
+		ServiceAccount: serviceAccount,
+		NsExists:       nsExists,
+		SAExists:       saExists,
+		SkipSSL:        skipSSL,
+		NodeSelector:   nodeSelector,
+		Tolerations:    tolerations,
+		Mode:           models.InfraScope(mode).String(),
+	}
+
+	response, err := infrastructure.ConnectInfra(infra, c.credentials)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create infrastructure: %w", err)
+	}
+
+	return response.Data.RegisterInfraDetails, nil
 }
 
 // Delete removes an infrastructure resource
-func (c *infrastructureClient) Delete(id string) error {
-	// TODO: Implement when infrastructure API is available
-	return nil
-}
-
-// Update updates an infrastructure resource
-func (c *infrastructureClient) Update(id string, config map[string]interface{}) (interface{}, error) {
-	// TODO: Implement when infrastructure API is available
-	return nil, nil
+func (c *infrastructureClient) Delete(id string)  error {
+	return c.Disconnect(id)
 }
 
 // Get retrieves infrastructure details
 func (c *infrastructureClient) Get(id string) (interface{}, error) {
-	// TODO: Implement when infrastructure API is available
-	return nil, nil
-}
+	// Currently, there's no specific API for getting a single infrastructure
+	// We'll get the list and filter for the requested ID
+	if c.credentials.ServerEndpoint == "" {
+		return nil, fmt.Errorf("server endpoint not set in credentials")
+	}
+	
+	if c.credentials.ProjectID == "" {
+		return nil, fmt.Errorf("project ID not set in credentials")
+	}
 
-// Connect establishes a connection to an infrastructure
-func (c *infrastructureClient) Connect(id string, params map[string]string) error {
-	// TODO: Implement when infrastructure API is available
-	return nil
+	if id == "" {
+		return nil, fmt.Errorf("infrastructure ID cannot be empty")
+	}
+
+	request := models.ListInfraRequest{
+		InfraIDs: []string{id},
+	}
+	
+	response, err := infrastructure.GetInfraList(c.credentials, c.credentials.ProjectID, request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get infrastructure: %w", err)
+	}
+
+	if len(response.Data.ListInfraDetails.Infras) == 0 {
+		return nil, fmt.Errorf("infrastructure not found with ID: %s", id)
+	}
+
+	return response.Data.ListInfraDetails.Infras[0], nil
 }
 
 // Disconnect terminates a connection to an infrastructure
-func (c *infrastructureClient) Disconnect(id string) error {
-	// TODO: Implement when infrastructure API is available
+func (c *infrastructureClient) Disconnect(id string)  error {
+	if c.credentials.ServerEndpoint == "" {
+		return fmt.Errorf("server endpoint not set in credentials")
+	}
+	
+	if c.credentials.ProjectID == "" {
+		return fmt.Errorf("project ID not set in credentials")
+	}
+
+	if id == "" {
+		return fmt.Errorf("infrastructure ID cannot be empty")
+	}
+
+	_, err := infrastructure.DisconnectInfra(c.credentials.ProjectID, id, c.credentials)
+	if err != nil {
+		return fmt.Errorf("failed to disconnect infrastructure: %w", err)
+	}
+
 	return nil
+}
+
+// Helper functions for config extraction
+func getStringFromConfig(config map[string]interface{}, key, defaultValue string) string {
+	if val, ok := config[key]; ok {
+		if strVal, ok := val.(string); ok {
+			return strVal
+		}
+	}
+	return defaultValue
+}
+
+func getBoolFromConfig(config map[string]interface{}, key string, defaultValue bool) bool {
+	if val, ok := config[key]; ok {
+		if boolVal, ok := val.(bool); ok {
+			return boolVal
+		}
+	}
+	return defaultValue
 }
