@@ -28,20 +28,14 @@ type ProbeClient interface {
 	// List retrieves all probes
 	List(projectID string) (interface{}, error)
 
-	// Create creates a new probe
-	Create(projectID string, name string, config map[string]interface{}) (interface{}, error)
-
 	// Delete removes a probe
 	Delete(projectID string, id string) error
-
-	// Update updates a probe
-	Update(projectID string, id string, config map[string]interface{}) (interface{}, error)
 
 	// Get retrieves probe details
 	Get(projectID string, id string) (interface{}, error)
 
-	// Execute runs a probe
-	Execute(projectID string, id string, params map[string]string) (interface{}, error)
+	// GetProbeYAML retrieves the YAML configuration for a probe
+	GetProbeYAML(projectID string, id string, params map[string]string) (interface{}, error)
 }
 
 // probeClient implements the ProbeClient interface
@@ -70,15 +64,6 @@ func (c *probeClient) List(projectID string) (interface{}, error) {
 	return response.Data.Probes, nil
 }
 
-// Create creates a new probe
-func (c *probeClient) Create(projectID string, name string, config map[string]interface{}) (interface{}, error) {
-	if projectID == "" {
-		return nil, fmt.Errorf("project ID cannot be empty")
-	}
-	
-	// TODO: Implementation pending for probe creation API
-	return nil, fmt.Errorf("probe creation not yet implemented in the API")
-}
 
 // Delete removes a probe
 func (c *probeClient) Delete(projectID string, id string) error {
@@ -106,19 +91,6 @@ func (c *probeClient) Delete(projectID string, id string) error {
 	return nil
 }
 
-// Update updates a probe
-func (c *probeClient) Update(projectID string, id string, config map[string]interface{}) (interface{}, error) {
-	if projectID == "" {
-		return nil, fmt.Errorf("project ID cannot be empty")
-	}
-
-	if id == "" {
-		return nil, fmt.Errorf("probe ID cannot be empty")
-	}
-	
-	// TODO: Implementation pending for probe update API
-	return nil, fmt.Errorf("probe update not yet implemented in the API")
-}
 
 // Get retrieves probe details
 func (c *probeClient) Get(projectID string, id string) (interface{}, error) {
@@ -143,7 +115,7 @@ func (c *probeClient) Get(projectID string, id string) (interface{}, error) {
 }
 
 // Execute runs a probe
-func (c *probeClient) Execute(projectID string, id string, params map[string]string) (interface{}, error) {
+func (c *probeClient) GetProbeYAML(projectID string, id string, params map[string]string) (interface{}, error) {
 	if c.credentials.ServerEndpoint == "" {
 		return nil, fmt.Errorf("server endpoint not set in credentials")
 	}
@@ -158,7 +130,8 @@ func (c *probeClient) Execute(projectID string, id string, params map[string]str
 
 	// Create a request to get probe YAML
 	request := models.GetProbeYAMLRequest{
-		Name: id,
+		ProbeName: id,
+		Mode: models.Mode(params["mode"]),
 	}
 
 	response, err := probe.GetProbeYAMLRequest(projectID, request, c.credentials)

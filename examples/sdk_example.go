@@ -136,7 +136,7 @@ func CompleteSDKExample() {
 	// ======== Probe Operations ========
 
 	// List probes
-	probes, err := client.Probes().List()
+	probes, err := client.Probes().List("probe-id-123")
 	if err != nil {
 		logger.Fatalf("Failed to list probes: %v", err)
 	}
@@ -144,32 +144,6 @@ func CompleteSDKExample() {
 		"probes": probes,
 	})
 
-	// Create probe
-	probeConfig := map[string]interface{}{
-		"type":    "http",
-		"url":     "https://api.example.com/health",
-		"method":  "GET",
-		"timeout": 5,
-	}
-	newProbe, err := client.Probes().Create("api-health-check", probeConfig)
-	if err != nil {
-		logger.Fatalf("Failed to create probe: %v", err)
-	}
-	logger.InfoWithValues("Created probe", map[string]interface{}{
-		"probe": newProbe,
-	})
-
-	// Execute probe
-	executeParams := map[string]string{
-		"headers": "Content-Type: application/json",
-	}
-	probeResult, err := client.Probes().Execute("probe-id-123", executeParams)
-	if err != nil {
-		logger.Fatalf("Failed to execute probe: %v", err)
-	}
-	logger.InfoWithValues("Probe execution", map[string]interface{}{
-		"result": probeResult,
-	})
 }
 
 // getEnv gets an environment variable or returns a default value
