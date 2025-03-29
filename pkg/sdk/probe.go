@@ -16,28 +16,32 @@ limitations under the License.
 package sdk
 
 import (
+	"fmt"
+
+	"github.com/litmuschaos/litmus-go-sdk/pkg/apis/probe"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
+	models "github.com/litmuschaos/litmus/chaoscenter/graphql/server/graph/model"
 )
 
 // ProbeClient defines the interface for probe operations
 type ProbeClient interface {
 	// List retrieves all probes
-	List() (interface{}, error)
+	List(projectID string) (interface{}, error)
 
 	// Create creates a new probe
-	Create(name string, config map[string]interface{}) (interface{}, error)
+	Create(projectID string, name string, config map[string]interface{}) (interface{}, error)
 
 	// Delete removes a probe
-	Delete(id string) error
+	Delete(projectID string, id string) error
 
 	// Update updates a probe
-	Update(id string, config map[string]interface{}) (interface{}, error)
+	Update(projectID string, id string, config map[string]interface{}) (interface{}, error)
 
 	// Get retrieves probe details
-	Get(id string) (interface{}, error)
+	Get(projectID string, id string) (interface{}, error)
 
 	// Execute runs a probe
-	Execute(id string, params map[string]string) (interface{}, error)
+	Execute(projectID string, id string, params map[string]string) (interface{}, error)
 }
 
 // probeClient implements the ProbeClient interface
@@ -46,37 +50,121 @@ type probeClient struct {
 }
 
 // List retrieves all probes
-func (c *probeClient) List() (interface{}, error) {
-	// TODO: Implement when probe API is available
-	return nil, nil
+func (c *probeClient) List(projectID string) (interface{}, error) {
+	if c.credentials.ServerEndpoint == "" {
+		return nil, fmt.Errorf("server endpoint not set in credentials")
+	}
+
+	if projectID == "" {
+		return nil, fmt.Errorf("project ID cannot be empty")
+	}
+
+	// Use all probe types as no specific type is requested
+	var probeTypes []*models.ProbeType
+	
+	response, err := probe.ListProbeRequest(projectID, probeTypes, c.credentials)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list probes: %w", err)
+	}
+
+	return response.Data.Probes, nil
 }
 
 // Create creates a new probe
-func (c *probeClient) Create(name string, config map[string]interface{}) (interface{}, error) {
-	// TODO: Implement when probe API is available
-	return nil, nil
+func (c *probeClient) Create(projectID string, name string, config map[string]interface{}) (interface{}, error) {
+	if projectID == "" {
+		return nil, fmt.Errorf("project ID cannot be empty")
+	}
+	
+	// TODO: Implementation pending for probe creation API
+	return nil, fmt.Errorf("probe creation not yet implemented in the API")
 }
 
 // Delete removes a probe
-func (c *probeClient) Delete(id string) error {
-	// TODO: Implement when probe API is available
+func (c *probeClient) Delete(projectID string, id string) error {
+	if c.credentials.ServerEndpoint == "" {
+		return fmt.Errorf("server endpoint not set in credentials")
+	}
+
+	if projectID == "" {
+		return fmt.Errorf("project ID cannot be empty")
+	}
+
+	if id == "" {
+		return fmt.Errorf("probe ID cannot be empty")
+	}
+
+	response, err := probe.DeleteProbeRequest(projectID, id, c.credentials)
+	if err != nil {
+		return fmt.Errorf("failed to delete probe: %w", err)
+	}
+
+	if !response.Data.DeleteProbe {
+		return fmt.Errorf("probe deletion was not successful")
+	}
+
 	return nil
 }
 
 // Update updates a probe
-func (c *probeClient) Update(id string, config map[string]interface{}) (interface{}, error) {
-	// TODO: Implement when probe API is available
-	return nil, nil
+func (c *probeClient) Update(projectID string, id string, config map[string]interface{}) (interface{}, error) {
+	if projectID == "" {
+		return nil, fmt.Errorf("project ID cannot be empty")
+	}
+
+	if id == "" {
+		return nil, fmt.Errorf("probe ID cannot be empty")
+	}
+	
+	// TODO: Implementation pending for probe update API
+	return nil, fmt.Errorf("probe update not yet implemented in the API")
 }
 
 // Get retrieves probe details
-func (c *probeClient) Get(id string) (interface{}, error) {
-	// TODO: Implement when probe API is available
-	return nil, nil
+func (c *probeClient) Get(projectID string, id string) (interface{}, error) {
+	if c.credentials.ServerEndpoint == "" {
+		return nil, fmt.Errorf("server endpoint not set in credentials")
+	}
+
+	if projectID == "" {
+		return nil, fmt.Errorf("project ID cannot be empty")
+	}
+
+	if id == "" {
+		return nil, fmt.Errorf("probe ID cannot be empty")
+	}
+
+	response, err := probe.GetProbeRequest(projectID, id, c.credentials)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get probe: %w", err)
+	}
+
+	return response.Data.GetProbe, nil
 }
 
 // Execute runs a probe
-func (c *probeClient) Execute(id string, params map[string]string) (interface{}, error) {
-	// TODO: Implement when probe API is available
-	return nil, nil
+func (c *probeClient) Execute(projectID string, id string, params map[string]string) (interface{}, error) {
+	if c.credentials.ServerEndpoint == "" {
+		return nil, fmt.Errorf("server endpoint not set in credentials")
+	}
+
+	if projectID == "" {
+		return nil, fmt.Errorf("project ID cannot be empty")
+	}
+
+	if id == "" {
+		return nil, fmt.Errorf("probe ID cannot be empty")
+	}
+
+	// Create a request to get probe YAML
+	request := models.GetProbeYAMLRequest{
+		Name: id,
+	}
+
+	response, err := probe.GetProbeYAMLRequest(projectID, request, c.credentials)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute probe: %w", err)
+	}
+
+	return response.Data.GetProbeYAML, nil
 }
