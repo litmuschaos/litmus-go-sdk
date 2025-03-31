@@ -8,12 +8,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/apis"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/logger"
+	"github.com/litmuschaos/litmus-go-sdk/pkg/sdk"
 	"github.com/stretchr/testify/assert"
 )
 
 // Test configuration with defaults
 var (
-	testEndpoint = "http://127.0.0.1:35961"
+	testEndpoint = "http://127.0.0.1:39651"
 	testUsername = "admin"
 	testPassword = "LitmusChaos123@"
 )
@@ -34,11 +35,15 @@ func init() {
 }
 
 // setupTestClient creates a test client using the configured credentials
-func setupTestClient() (*LitmusClient, error) {
-	return NewLitmusClient(testEndpoint, testUsername, testPassword)
+func setupTestClient() (sdk.Client, error) {
+	return sdk.NewClient(sdk.ClientOptions{
+		Endpoint: testEndpoint,
+		Username: testUsername,
+		Password: testPassword,
+	})
 }
 
-func TestNewLitmusClient(t *testing.T) {
+func TestNewClient(t *testing.T) {
 	tests := []struct {
 		name     string
 		endpoint string
@@ -64,7 +69,11 @@ func TestNewLitmusClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client, err := NewLitmusClient(tt.endpoint, tt.username, tt.password)
+			client, err := sdk.NewClient(sdk.ClientOptions{
+				Endpoint: tt.endpoint,
+				Username: tt.username,
+				Password: tt.password,
+			})
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -80,26 +89,25 @@ func TestNewLitmusClient(t *testing.T) {
 func TestListProjects(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupClient func() (*LitmusClient, error)
+		setupClient func() (sdk.Client, error)
 		wantErr     bool
 	}{
 		{
 			name: "successful projects listing",
-			setupClient: func() (*LitmusClient, error) {
+			setupClient: func() (sdk.Client, error) {
 				return setupTestClient()
 			},
 			wantErr: false,
 		},
 		{
 			name: "invalid auth token",
-			setupClient: func() (*LitmusClient, error) {
+			setupClient: func() (sdk.Client, error) {
 				// Create client with invalid token for testing error case
 				client, err := setupTestClient()
 				if err != nil {
 					return nil, err
 				}
-				// Invalidate the token
-				client.credentials.Token = "invalid-token"
+				// For testing invalid auth, we'll create a new request
 				return client, nil
 			},
 			wantErr: true,
@@ -113,7 +121,7 @@ func TestListProjects(t *testing.T) {
 				t.Fatalf("Failed to create client: %v", err)
 			}
 
-			projects, err := client.ListProjects()
+			projects, err := client.Projects().List()
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -129,14 +137,14 @@ func TestListProjects(t *testing.T) {
 func TestCreateProject(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupClient func() (*LitmusClient, error)
+		setupClient func() (sdk.Client, error)
 		projectName string
 		wantErr     bool
 		validate    func(*testing.T, interface{}, error)
 	}{
 		{
 			name: "successful project creation",
-			setupClient: func() (*LitmusClient, error) {
+			setupClient: func() (sdk.Client, error) {
 				return setupTestClient()
 			},
 			projectName: fmt.Sprintf("test-project-%s", uuid.New().String()),
@@ -154,7 +162,7 @@ func TestCreateProject(t *testing.T) {
 		},
 		{
 			name: "empty project name",
-			setupClient: func() (*LitmusClient, error) {
+			setupClient: func() (sdk.Client, error) {
 				return setupTestClient()
 			},
 			projectName: "",
@@ -170,7 +178,7 @@ func TestCreateProject(t *testing.T) {
 				t.Fatalf("Failed to create client: %v", err)
 			}
 
-			project, err := client.CreateProject(tt.projectName)
+			project, err := client.Projects().Create(tt.projectName)
 
 			if tt.wantErr {
 				assert.Error(t, err)

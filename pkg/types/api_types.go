@@ -40,6 +40,7 @@ type Credentials struct {
 	Token          string
 	Endpoint       string
 	ServerEndpoint string
+	ProjectID      string
 }
 
 type UpdatePasswordInput struct {
