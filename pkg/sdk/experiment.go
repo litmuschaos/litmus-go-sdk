@@ -43,6 +43,17 @@ type ExperimentClient interface {
 	// Run starts an experiment
 	Run(id string) (interface{}, error)
 
+	// GetRunStatus retrieves the status of a specific experiment run
+	GetRunStatus(runID string) (interface{}, error)
+
+	// GetRunPhase retrieves just the status/phase of a specific experiment run
+	GetRunPhase(runID string) (string, error)
+
+	// GetStatus retrieves the status of an experiment including its recent runs
+	GetStatus(id string) (interface{}, error)
+
+	// ListRuns retrieves all runs for an experiment with their statuses
+	ListRuns(id string, statusFilter []string) (interface{}, error)
 }
 
 // experimentClient implements the ExperimentClient interface
@@ -200,5 +211,103 @@ func (c *experimentClient) Run(id string) (interface{}, error) {
 	}
 
 	return response.Data.RunExperimentDetails, nil
+}
+
+// GetRunStatus retrieves the status of a specific experiment run
+func (c *experimentClient) GetRunStatus(runID string) (interface{}, error) {
+	if c.credentials.ServerEndpoint == "" {
+		return nil, fmt.Errorf("server endpoint not set in credentials")
+	}
+	
+	if c.credentials.ProjectID == "" {
+		return nil, fmt.Errorf("project ID not set in credentials")
+	}
+
+	if runID == "" {
+		return nil, fmt.Errorf("experiment run ID cannot be empty")
+	}
+
+	response, err := experiment.GetExperimentRun(c.credentials.ProjectID, runID, c.credentials)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get experiment run status: %w", err)
+	}
+
+	// Return the full experiment run data
+	return response.Data.ExperimentRun, nil
+}
+
+// GetRunPhase retrieves just the status/phase of a specific experiment run
+func (c *experimentClient) GetRunPhase(runID string) (string, error) {
+	if c.credentials.ServerEndpoint == "" {
+		return "", fmt.Errorf("server endpoint not set in credentials")
+	}
+	
+	if c.credentials.ProjectID == "" {
+		return "", fmt.Errorf("project ID not set in credentials")
+	}
+
+	if runID == "" {
+		return "", fmt.Errorf("experiment run ID cannot be empty")
+	}
+
+	response, err := experiment.GetExperimentRun(c.credentials.ProjectID, runID, c.credentials)
+	if err != nil {
+		return "", fmt.Errorf("failed to get experiment run phase: %w", err)
+	}
+
+	// Return just the phase/status string
+	return response.Data.ExperimentRun.Phase, nil
+}
+
+// GetStatus retrieves the status of an experiment including its recent runs
+func (c *experimentClient) GetStatus(id string) (interface{}, error) {
+	if c.credentials.ServerEndpoint == "" {
+		return nil, fmt.Errorf("server endpoint not set in credentials")
+	}
+	
+	if c.credentials.ProjectID == "" {
+		return nil, fmt.Errorf("project ID not set in credentials")
+	}
+
+	if id == "" {
+		return nil, fmt.Errorf("experiment ID cannot be empty")
+	}
+
+	response, err := experiment.GetExperimentWithStatus(c.credentials.ProjectID, id, c.credentials)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get experiment status: %w", err)
+	}
+
+	return response.Data.ExperimentDetails, nil
+}
+
+// ListRuns retrieves all runs for an experiment with their statuses
+func (c *experimentClient) ListRuns(id string, statusFilter []string) (interface{}, error) {
+	if c.credentials.ServerEndpoint == "" {
+		return nil, fmt.Errorf("server endpoint not set in credentials")
+	}
+	
+	if c.credentials.ProjectID == "" {
+		return nil, fmt.Errorf("project ID not set in credentials")
+	}
+
+	request := models.ListExperimentRunRequest{}
+	
+	// If experiment ID is provided, filter by it
+	if id != "" {
+		experimentID := id
+		request.ExperimentIDs = []*string{&experimentID}
+	}
+	
+	// Apply status filters if provided
+	// Note: This assumes the model.ListExperimentRunRequest has a field for status filters
+	// You may need to adjust this based on the actual model structure
+	
+	response, err := experiment.GetExperimentRunsList(c.credentials.ProjectID, request, c.credentials)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list experiment runs: %w", err)
+	}
+
+	return response.Data.ListExperimentRunDetails, nil
 }
 

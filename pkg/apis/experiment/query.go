@@ -57,4 +57,41 @@ const (
                         notifyID
                       }
                     }`
+
+	GetExperimentRunQuery = `query getExperimentRun($projectID: ID!, $experimentRunID: ID) {
+                      getExperimentRun(projectID: $projectID, experimentRunID: $experimentRunID) {
+                        projectID
+                        experimentRunID
+                        experimentID
+                        experimentName
+                        phase
+                        resiliencyScore
+                        faultsPassed
+                        faultsFailed
+                        faultsAwaited
+                        faultsStopped
+                        faultsNa
+                        totalFaults
+                        updatedAt
+                        updatedBy {
+                          username
+                        }
+                      }
+                    }`
+
+	GetExperimentStatusQuery = `query getExperiment($projectID: ID!, $experimentID: String!) {
+                      getExperiment(projectID: $projectID, experimentID: $experimentID) {
+                        experimentDetails {
+                          name
+                          experimentID
+                          recentExperimentRunDetails {
+                            experimentRunID
+                            phase
+                            resiliencyScore
+                            updatedAt
+                          }
+                        }
+                        averageResiliencyScore
+                      }
+                    }`
 )
