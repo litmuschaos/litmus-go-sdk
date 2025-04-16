@@ -43,17 +43,9 @@ type ExperimentClient interface {
 	// Run starts an experiment
 	Run(id string) (interface{}, error)
 
-	// GetRunStatus retrieves the status of a specific experiment run
-	GetRunStatus(runID string) (interface{}, error)
-
 	// GetRunPhase retrieves just the status/phase of a specific experiment run
 	GetRunPhase(runID string) (string, error)
 
-	// GetStatus retrieves the status of an experiment including its recent runs
-	GetStatus(id string) (interface{}, error)
-
-	// ListRuns retrieves all runs for an experiment with their statuses
-	ListRuns(id string, statusFilter []string) (interface{}, error)
 }
 
 // experimentClient implements the ExperimentClient interface
@@ -209,7 +201,7 @@ func (c *experimentClient) Run(id string) (interface{}, error) {
 
 // GetRunPhase retrieves just the status/phase of a specific experiment run
 func (c *experimentClient) GetRunPhase(runID string) (string, error) {
-	// Reuse GetRunStatus to avoid code duplication
+
 	runData, err := c.Get(runID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get experiment run phase: %w", err)
