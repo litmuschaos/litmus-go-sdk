@@ -168,7 +168,7 @@ func (c *experimentClient) Get(runID string) (interface{}, error) {
 
 	response, err := experiment.GetExperimentRun(c.credentials.ProjectID, runID, c.credentials)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get experiment run status: %w", err)
+		return nil, fmt.Errorf("failed to get experiment run: %w", err)
 	}
 
 	// Return the full experiment run data

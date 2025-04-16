@@ -78,20 +78,4 @@ const (
                         }
                       }
                     }`
-
-	GetExperimentStatusQuery = `query getExperiment($projectID: ID!, $experimentID: String!) {
-                      getExperiment(projectID: $projectID, experimentID: $experimentID) {
-                        experimentDetails {
-                          name
-                          experimentID
-                          recentExperimentRunDetails {
-                            experimentRunID
-                            phase
-                            resiliencyScore
-                            updatedAt
-                          }
-                        }
-                        averageResiliencyScore
-                      }
-                    }`
 )

@@ -166,20 +166,3 @@ func GetExperimentRun(pid string, runID string, cred types.Credentials) (Experim
 		"Error in fetching Chaos Experiment Run",
 	)
 }
-
-// GetExperimentWithStatus sends GraphQL API request for getting experiment with status.
-func GetExperimentWithStatus(pid string, eid string, cred types.Credentials) (ExperimentStatusData, error) {
-	return utils.SendGraphQLRequest[ExperimentStatusData](
-		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
-		cred.Token,
-		GetExperimentStatusQuery,
-		struct {
-			ProjectID    string `json:"projectID"`
-			ExperimentID string `json:"experimentID"`
-		}{
-			ProjectID:    pid,
-			ExperimentID: eid,
-		},
-		"Error in fetching Chaos Experiment Status",
-	)
-}
