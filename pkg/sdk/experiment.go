@@ -161,8 +161,7 @@ func (c *experimentClient) Update(id string, config map[string]interface{}) (int
 	return saveResp.Data.Message, nil
 }
 
-// Get retrieves experiment details
-func (c *experimentClient) Get(id string) (interface{}, error) {
+func (c *experimentClient) Get(runID string) (interface{}, error) {
 	if c.credentials.ServerEndpoint == "" {
 		return nil, fmt.Errorf("server endpoint not set in credentials")
 	}
@@ -171,24 +170,17 @@ func (c *experimentClient) Get(id string) (interface{}, error) {
 		return nil, fmt.Errorf("project ID not set in credentials")
 	}
 
-	if id == "" {
-		return nil, fmt.Errorf("experiment ID cannot be empty")
+	if runID == "" {
+		return nil, fmt.Errorf("experiment run ID cannot be empty")
 	}
 
-	request := models.ListExperimentRequest{
-		ExperimentIDs: []*string{&id},
-	}
-	
-	response, err := experiment.GetExperimentList(c.credentials.ProjectID, request, c.credentials)
+	response, err := experiment.GetExperimentRun(c.credentials.ProjectID, runID, c.credentials)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get experiment: %w", err)
+		return nil, fmt.Errorf("failed to get experiment run status: %w", err)
 	}
 
-	if len(response.Data.ListExperimentDetails.Experiments) == 0 {
-		return nil, fmt.Errorf("experiment not found with ID: %s", id)
-	}
-
-	return response.Data.ListExperimentDetails.Experiments[0], nil
+	// Return the full experiment run data
+	return response.Data.ExperimentRun, nil
 }
 
 // Run starts an experiment
@@ -213,101 +205,21 @@ func (c *experimentClient) Run(id string) (interface{}, error) {
 	return response.Data.RunExperimentDetails, nil
 }
 
-// GetRunStatus retrieves the status of a specific experiment run
-func (c *experimentClient) GetRunStatus(runID string) (interface{}, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
-	}
-	
-	if c.credentials.ProjectID == "" {
-		return nil, fmt.Errorf("project ID not set in credentials")
-	}
-
-	if runID == "" {
-		return nil, fmt.Errorf("experiment run ID cannot be empty")
-	}
-
-	response, err := experiment.GetExperimentRun(c.credentials.ProjectID, runID, c.credentials)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get experiment run status: %w", err)
-	}
-
-	// Return the full experiment run data
-	return response.Data.ExperimentRun, nil
-}
+// Get retrieves experiment details
 
 // GetRunPhase retrieves just the status/phase of a specific experiment run
 func (c *experimentClient) GetRunPhase(runID string) (string, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return "", fmt.Errorf("server endpoint not set in credentials")
-	}
-	
-	if c.credentials.ProjectID == "" {
-		return "", fmt.Errorf("project ID not set in credentials")
-	}
-
-	if runID == "" {
-		return "", fmt.Errorf("experiment run ID cannot be empty")
-	}
-
-	response, err := experiment.GetExperimentRun(c.credentials.ProjectID, runID, c.credentials)
+	// Reuse GetRunStatus to avoid code duplication
+	runData, err := c.Get(runID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get experiment run phase: %w", err)
 	}
 
-	// Return just the phase/status string
-	return response.Data.ExperimentRun.Phase, nil
-}
-
-// GetStatus retrieves the status of an experiment including its recent runs
-func (c *experimentClient) GetStatus(id string) (interface{}, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
+	// Extract just the phase from the experiment run data
+	if experimentRun, ok := runData.(experiment.ExperimentRunResponse); ok {
+		return experimentRun.Phase, nil
 	}
 	
-	if c.credentials.ProjectID == "" {
-		return nil, fmt.Errorf("project ID not set in credentials")
-	}
-
-	if id == "" {
-		return nil, fmt.Errorf("experiment ID cannot be empty")
-	}
-
-	response, err := experiment.GetExperimentWithStatus(c.credentials.ProjectID, id, c.credentials)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get experiment status: %w", err)
-	}
-
-	return response.Data.ExperimentDetails, nil
-}
-
-// ListRuns retrieves all runs for an experiment with their statuses
-func (c *experimentClient) ListRuns(id string, statusFilter []string) (interface{}, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
-	}
-	
-	if c.credentials.ProjectID == "" {
-		return nil, fmt.Errorf("project ID not set in credentials")
-	}
-
-	request := models.ListExperimentRunRequest{}
-	
-	// If experiment ID is provided, filter by it
-	if id != "" {
-		experimentID := id
-		request.ExperimentIDs = []*string{&experimentID}
-	}
-	
-	// Apply status filters if provided
-	// Note: This assumes the model.ListExperimentRunRequest has a field for status filters
-	// You may need to adjust this based on the actual model structure
-	
-	response, err := experiment.GetExperimentRunsList(c.credentials.ProjectID, request, c.credentials)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list experiment runs: %w", err)
-	}
-
-	return response.Data.ListExperimentRunDetails, nil
+	return "", fmt.Errorf("unexpected format for experiment run data")
 }
 
