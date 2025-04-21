@@ -43,6 +43,9 @@ type ExperimentClient interface {
 	// Run starts an experiment
 	Run(id string) (interface{}, error)
 
+	// GetRunPhase retrieves just the status/phase of a specific experiment run
+	GetRunPhase(runID string) (string, error)
+
 }
 
 // experimentClient implements the ExperimentClient interface
@@ -150,8 +153,7 @@ func (c *experimentClient) Update(id string, config map[string]interface{}) (int
 	return saveResp.Data.Message, nil
 }
 
-// Get retrieves experiment details
-func (c *experimentClient) Get(id string) (interface{}, error) {
+func (c *experimentClient) Get(runID string) (interface{}, error) {
 	if c.credentials.ServerEndpoint == "" {
 		return nil, fmt.Errorf("server endpoint not set in credentials")
 	}
@@ -160,24 +162,17 @@ func (c *experimentClient) Get(id string) (interface{}, error) {
 		return nil, fmt.Errorf("project ID not set in credentials")
 	}
 
-	if id == "" {
-		return nil, fmt.Errorf("experiment ID cannot be empty")
+	if runID == "" {
+		return nil, fmt.Errorf("experiment run ID cannot be empty")
 	}
 
-	request := models.ListExperimentRequest{
-		ExperimentIDs: []*string{&id},
-	}
-	
-	response, err := experiment.GetExperimentList(c.credentials.ProjectID, request, c.credentials)
+	response, err := experiment.GetExperimentRun(c.credentials.ProjectID, runID, c.credentials)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get experiment: %w", err)
+		return nil, fmt.Errorf("failed to get experiment run: %w", err)
 	}
 
-	if len(response.Data.ListExperimentDetails.Experiments) == 0 {
-		return nil, fmt.Errorf("experiment not found with ID: %s", id)
-	}
-
-	return response.Data.ListExperimentDetails.Experiments[0], nil
+	// Return the full experiment run data
+	return response.Data.ExperimentRun, nil
 }
 
 // Run starts an experiment
@@ -200,5 +195,23 @@ func (c *experimentClient) Run(id string) (interface{}, error) {
 	}
 
 	return response.Data.RunExperimentDetails, nil
+}
+
+// Get retrieves experiment details
+
+// GetRunPhase retrieves just the status/phase of a specific experiment run
+func (c *experimentClient) GetRunPhase(runID string) (string, error) {
+
+	runData, err := c.Get(runID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get experiment run phase: %w", err)
+	}
+
+	// Extract just the phase from the experiment run data
+	if experimentRun, ok := runData.(experiment.ExperimentRunResponse); ok {
+		return experimentRun.Phase, nil
+	}
+	
+	return "", fmt.Errorf("unexpected format for experiment run data")
 }
 

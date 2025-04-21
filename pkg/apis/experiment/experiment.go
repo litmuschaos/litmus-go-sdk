@@ -133,7 +133,7 @@ func GetExperimentRunsList(pid string, in model.ListExperimentRunRequest, cred t
 }
 
 // DeleteChaosExperiment sends GraphQL API request for deleting a given Chaos Experiment.
-func DeleteChaosExperiment(projectID string, experimentID *string, cred types.Credentials) (DeleteChaosExperimentData, error) {
+func DeleteChaosExperiment(pid string, eid *string, cred types.Credentials) (DeleteChaosExperimentData, error) {
 	return utils.SendGraphQLRequest[DeleteChaosExperimentData](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
 		cred.Token,
@@ -141,11 +141,28 @@ func DeleteChaosExperiment(projectID string, experimentID *string, cred types.Cr
 		struct {
 			ProjectID       string  `json:"projectID"`
 			ExperimentID    *string `json:"experimentID"`
-			ExperimentRunID *string `json:"experimentRunID,omitempty"`
+			ExperimentRunID *string `json:"experimentRunID"`
 		}{
-			ProjectID:    projectID,
-			ExperimentID: experimentID,
+			ProjectID:    pid,
+			ExperimentID: eid,
 		},
 		"Error in deleting Chaos Experiment",
+	)
+}
+
+// GetExperimentRun sends GraphQL API request for getting a specific experiment run.
+func GetExperimentRun(pid string, runID string, cred types.Credentials) (ExperimentRunData, error) {
+	return utils.SendGraphQLRequest[ExperimentRunData](
+		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		cred.Token,
+		GetExperimentRunQuery,
+		struct {
+			ProjectID       string `json:"projectID"`
+			ExperimentRunID string `json:"experimentRunID"`
+		}{
+			ProjectID:       pid,
+			ExperimentRunID: runID,
+		},
+		"Error in fetching Chaos Experiment Run",
 	)
 }
