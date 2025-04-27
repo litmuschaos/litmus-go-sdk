@@ -153,9 +153,9 @@ func seedInfrastructureData(credentials types.Credentials, projectID, environmen
 		log.Fatalf("Failed to register infrastructure: %v", err)
 	}
 
-	logger.Infof("Created infrastructure with ID: %s", infraResp.Data.RegisterInfra.InfraID)
+	logger.Infof("Created infrastructure with ID: %s", infraResp.RegisterInfra.InfraID)
 	
-	return infraResp.Data.RegisterInfra.InfraID
+	return infraResp.RegisterInfra.InfraID
 }
 
 func seedExperimentData(credentials types.Credentials, projectID, infrastructureID string) string {
