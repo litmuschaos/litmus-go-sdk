@@ -3,10 +3,14 @@ package experiment
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/apis"
+	"github.com/litmuschaos/litmus-go-sdk/pkg/apis/environment"
+	"github.com/litmuschaos/litmus-go-sdk/pkg/apis/infrastructure"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/logger"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
 	"github.com/litmuschaos/litmus/chaoscenter/graphql/server/graph/model"
@@ -15,10 +19,165 @@ import (
 
 // Test configuration with defaults
 var (
-	testEndpoint = "http://127.0.0.1:39651"
+	testEndpoint = " "
 	testUsername = "admin"
-	testPassword = "  litmus"
+	testPassword = "  "
+	
+	// Store IDs as package-level variables for test access
+	projectID       string
+	environmentID   string
+	infrastructureID string
+	experimentID    string
+	credentials     types.Credentials
 )
+
+func TestMain(m *testing.M) {
+	// Override defaults with environment variables if set
+	if endpoint := os.Getenv("LITMUS_TEST_ENDPOINT"); endpoint != "" {
+		testEndpoint = endpoint
+	}
+	if username := os.Getenv("LITMUS_TEST_USERNAME"); username != "" {
+		testUsername = username
+	}
+	if password := os.Getenv("LITMUS_TEST_PASSWORD"); password != "" {
+		testPassword = password
+	}
+
+	logger.Infof("Test configuration - Endpoint: %s, Username: %s", testEndpoint, testUsername)
+	
+	// Setup credentials by authenticating
+	authResp, err := apis.Auth(types.AuthInput{
+		Endpoint: testEndpoint,
+		Username: testUsername,
+		Password: testPassword,
+	})
+	if err != nil {
+		log.Fatalf("Failed to authenticate: %v", err)
+	}
+
+	credentials = types.Credentials{
+		ServerEndpoint: testEndpoint,
+		Endpoint: testEndpoint,
+		Token:          authResp.AccessToken,
+	}
+
+	// Get or create project ID
+	projectResp, err := apis.ListProject(credentials)
+	if err != nil {
+		log.Fatalf("Failed to list projects: %v", err)
+	}
+
+	if len(projectResp.Data.Projects) > 0 {
+		projectID = projectResp.Data.Projects[0].ID
+		logger.Infof("Using existing project ID: %s", projectID)
+	} else {
+		// Create a project if none exists
+		projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+		newProject, err := apis.CreateProjectRequest(projectName, credentials)
+		if err != nil {
+			log.Fatalf("Failed to create project: %v", err)
+		}
+		projectID = newProject.Data.ID
+		logger.Infof("Created new project ID: %s", projectID)
+	}
+	
+	// Store project ID in credentials for convenience
+	credentials.ProjectID = projectID
+
+	// 1. Seed Environment Data
+	logger.Infof("Seeding Environment data...")
+	environmentID = seedEnvironmentData(credentials, projectID)
+
+	// 2. Seed Infrastructure Data
+	logger.Infof("Seeding Infrastructure data...")
+	infrastructureID = seedInfrastructureData(credentials, projectID, environmentID)
+	
+	// 3. Seed Experiment Data
+	logger.Infof("Seeding Experiment data...")
+	experimentID = seedExperimentData(credentials, projectID, infrastructureID)
+	
+	// Run the tests
+	exitCode := m.Run()
+	
+	// Exit with the test status code
+	os.Exit(exitCode)
+}
+
+func seedEnvironmentData(credentials types.Credentials, projectID string) string {
+	// Create environment
+	envID := fmt.Sprintf("test-env-%s", uuid.New().String())
+	description := "Test environment for SDK tests"
+	
+	envRequest := model.CreateEnvironmentRequest{
+		Name:          "test-environment",
+		Description:   &description,
+		Type:          "NON_PROD",
+		Tags:          []string{"test", "sdk"},
+		EnvironmentID: envID,
+	}
+
+	envResp, err := environment.CreateEnvironment(projectID, envRequest, credentials)
+	if err != nil {
+		log.Fatalf("Failed to create environment: %v", err)
+	}
+
+	logger.Infof("Created environment with ID: %s", envResp.Data.CreateEnvironment.EnvironmentID)
+
+	return envResp.Data.CreateEnvironment.EnvironmentID
+}
+
+func seedInfrastructureData(credentials types.Credentials, projectID, environmentID string) string {
+	// Connect infrastructure
+	infraName := "test-infrastructure"
+	description := "Test infrastructure for SDK tests"
+	namespace := "litmus"
+	serviceAccount := "litmus"
+	
+	// Create the infrastructure object
+	infra := types.Infra{
+		ProjectID:      projectID,
+		InfraName:      infraName,
+		Description:    description,
+		PlatformName:   "kubernetes",
+		Mode:           "cluster",
+		EnvironmentID:  environmentID,
+		Namespace:      namespace,
+		ServiceAccount: serviceAccount,
+		NsExists:       true,
+		SAExists:       true,
+		SkipSSL:        false,
+	}
+	
+	// Connect the infrastructure
+	infraResp, err := infrastructure.ConnectInfra(infra, credentials)
+	if err != nil {
+		log.Fatalf("Failed to register infrastructure: %v", err)
+	}
+
+	logger.Infof("Created infrastructure with ID: %s", infraResp.Data.RegisterInfraDetails.InfraID)
+	
+	return infraResp.Data.RegisterInfraDetails.InfraID
+}
+
+func seedExperimentData(credentials types.Credentials, projectID, infrastructureID string) string {
+	// Create experiment
+	experimentID := fmt.Sprintf("test-exp-%s", uuid.New().String())
+	
+	// Create a simple experiment request
+	experimentRequest := model.SaveChaosExperimentRequest{
+		ID:   experimentID,
+		Name: "test-experiment",
+	}
+	
+	_, err := SaveExperiment(projectID, experimentRequest, credentials)
+	if err != nil {
+		log.Fatalf("Failed to create experiment: %v", err)
+	}
+	
+	logger.Infof("Created experiment with ID: %s", experimentID)
+	
+	return experimentID
+}
 
 func init() {
 	// Override defaults with environment variables if set

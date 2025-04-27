@@ -80,7 +80,7 @@ func (c *environmentClient) Create(name string, config map[string]interface{}) (
 		return nil, fmt.Errorf("failed to create environment: %w", err)
 	}
 
-	return response.Data.EnvironmentDetails, nil
+	return response.Data.CreateEnvironment.EnvironmentID, nil
 }
 
 // Delete removes an environment
@@ -124,5 +124,5 @@ func (c *environmentClient) Get(id string) (interface{}, error) {
 		return nil, fmt.Errorf("failed to get environment: %w", err)
 	}
 
-	return response.Data.EnvironmentDetails, nil
+	return response.Data.GetEnvironment, nil
 }
