@@ -215,7 +215,7 @@ func TestGetInfraList(t *testing.T) {
 	}{
 		{
 			name:      "successful infrastructure list",
-			projectID: "test-project-id",
+			projectID: projectID,
 			request:   model.ListInfraRequest{},
 			wantErr:   false,
 			validateFn: func(t *testing.T, result *InfraData) {
@@ -277,30 +277,30 @@ func TestConnectInfra(t *testing.T) {
 		{
 			name: "successful infrastructure connection",
 			infra: types.Infra{
-				ProjectID:      "test-project-id",
+				ProjectID:      projectID,
 				InfraName:      "test-infra",
 				Description:    "Test infrastructure",
 				PlatformName:   "kubernetes",
 				Mode:           "cluster",
-				EnvironmentID:  "test-env-id",
+				EnvironmentID:  environmentID,
 				Namespace:      "litmus",
 				ServiceAccount: "litmus",
 				NsExists:       true,
 				SAExists:       true,
 				SkipSSL:        false,
 			},
-			wantErr: true, // Expect error due to "Invalid EnvironmentID" in test environment
+			wantErr: false, 
 			validateFn: nil,
 		},
 		{
 			name: "infrastructure connection with empty name",
 			infra: types.Infra{
-				ProjectID:     "test-project-id",
+				ProjectID:     projectID,
 				InfraName:     "",
 				Description:   "Test infrastructure with empty name",
 				PlatformName:  "kubernetes",
 				Mode:          "cluster",
-				EnvironmentID: "test-env-id",
+				EnvironmentID: environmentID,
 			},
 			wantErr:    true,
 			validateFn: nil,

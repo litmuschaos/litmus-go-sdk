@@ -177,8 +177,8 @@ func TestGetProbeRequest(t *testing.T) {
 	}{
 		{
 			name:      "successful probe retrieval",
-			projectID: "test-project-id",
-			probeID:   "test-probe-id",
+			projectID: projectID,
+			probeID:   probeID,
 			wantErr:   false,
 			validateFn: func(t *testing.T, result *GetProbeResponse) {
 				assert.NotNil(t, result, "Result should not be nil")
@@ -188,7 +188,7 @@ func TestGetProbeRequest(t *testing.T) {
 		},
 		{
 			name:       "probe retrieval with empty ID",
-			projectID:  "test-project-id",
+			projectID:  projectID,
 			probeID:    "",
 			wantErr:    true,
 			validateFn: nil,
@@ -233,7 +233,7 @@ func TestListProbeRequest(t *testing.T) {
 	}{
 		{
 			name:       "successful probes listing",
-			projectID:  "test-project-id",
+			projectID:  projectID,
 			probeTypes: nil, // List all probe types
 			wantErr:    false,
 			validateFn: func(t *testing.T, result *ListProbeResponse) {
@@ -297,8 +297,8 @@ func TestDeleteProbeRequest(t *testing.T) {
 	}{
 		{
 			name:      "successful probe deletion",
-			projectID: "test-project-id",
-			probeID:   "test-probe-id",
+			projectID: projectID,
+			probeID:   probeID,
 			wantErr:   false,
 			validateFn: func(t *testing.T, result *DeleteProbeResponse) {
 				assert.NotNil(t, result, "Result should not be nil")
@@ -308,7 +308,7 @@ func TestDeleteProbeRequest(t *testing.T) {
 		},
 		{
 			name:       "probe deletion with empty probe ID",
-			projectID:  "test-project-id",
+			projectID:  projectID,
 			probeID:    "",
 			wantErr:    true,
 			validateFn: nil,
@@ -353,9 +353,9 @@ func TestGetProbeYAMLRequest(t *testing.T) {
 	}{
 		{
 			name:      "successful probe YAML retrieval",
-			projectID: "test-project-id",
+			projectID: projectID,
 			request: model.GetProbeYAMLRequest{
-				ProbeName: "test-probe",
+				ProbeName: probeName,
 				Mode:      "SOT",
 			},
 			wantErr: true, // Temporarily expect error due to no documents in the test database
@@ -363,7 +363,7 @@ func TestGetProbeYAMLRequest(t *testing.T) {
 		},
 		{
 			name:      "probe YAML retrieval with empty probe name",
-			projectID: "test-project-id",
+			projectID: projectID,
 			request: model.GetProbeYAMLRequest{
 				ProbeName: "",
 				Mode:      "SOT",

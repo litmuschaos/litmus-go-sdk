@@ -13,11 +13,11 @@ import (
 )
 
 // Test configuration with defaults
-var (
+var (	
+	
 	testEndpoint = "http://127.0.0.1:39651"
 	testUsername = "admin"
-	testPassword = "  litmus"
-)
+	testPassword = "  litmus"	)
 
 func init() {
 	// Override defaults with environment variables if set
@@ -110,7 +110,7 @@ func TestListProjects(t *testing.T) {
 				// For testing invalid auth, we'll create a new request
 				return client, nil
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 

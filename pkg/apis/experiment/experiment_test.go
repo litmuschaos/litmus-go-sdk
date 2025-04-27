@@ -298,8 +298,8 @@ func TestRunExperiment(t *testing.T) {
 	}{
 		{
 			name:         "successful experiment run",
-			projectID:    "test-project-id",
-			experimentID: "test-experiment-id",
+			projectID:    projectID,
+			experimentID: experimentID,
 			wantErr:      false,
 			validateFn: func(t *testing.T, result *RunExperimentResponse) {
 				assert.NotNil(t, result, "Result should not be nil")
@@ -309,7 +309,7 @@ func TestRunExperiment(t *testing.T) {
 		},
 		{
 			name:         "experiment run with empty ID",
-			projectID:    "test-project-id",
+			projectID:    projectID,
 			experimentID: "",
 			wantErr:      true,
 			validateFn:   nil,
@@ -354,7 +354,7 @@ func TestGetExperimentList(t *testing.T) {
 	}{
 		{
 			name:      "successful experiment list fetch",
-			projectID: "test-project-id",
+			projectID: projectID,
 			request: model.ListExperimentRequest{
 				Pagination: &model.Pagination{
 					Page:  1,
@@ -382,7 +382,7 @@ func TestGetExperimentList(t *testing.T) {
 		},
 		{
 			name:      "experiment list with pagination",
-			projectID: "test-project-id",
+			projectID: projectID,
 			request: model.ListExperimentRequest{
 				Pagination: &model.Pagination{
 					Page:  1,
@@ -444,7 +444,7 @@ func TestGetExperimentRunsList(t *testing.T) {
 	}{
 		{
 			name:      "successful experiment runs list fetch",
-			projectID: "test-project-id",
+			projectID: projectID,
 			request: model.ListExperimentRunRequest{
 				Pagination: &model.Pagination{
 					Page:  1,
@@ -462,7 +462,7 @@ func TestGetExperimentRunsList(t *testing.T) {
 		},
 		{
 			name:      "experiment runs list with pagination",
-			projectID: "test-project-id",
+			projectID: projectID,
 			request: model.ListExperimentRunRequest{
 				Pagination: &model.Pagination{
 					Page:  1,
@@ -524,8 +524,8 @@ func TestDeleteChaosExperiment(t *testing.T) {
 	}{
 		{
 			name:         "successful experiment deletion",
-			projectID:    "test-project-id",
-			experimentID: "test-experiment-id",
+			projectID:    projectID,
+			experimentID: experimentID,
 			wantErr:      false,
 			validateFn: func(t *testing.T, result *DeleteChaosExperimentData) {
 				assert.NotNil(t, result, "Result should not be nil")
@@ -535,7 +535,7 @@ func TestDeleteChaosExperiment(t *testing.T) {
 		},
 		{
 			name:         "experiment deletion with empty ID",
-			projectID:    "test-project-id",
+			projectID:    projectID,
 			experimentID: "",
 			wantErr:      true,
 			validateFn:   nil, // We expect an error, so no validation needed
@@ -575,7 +575,7 @@ func TestCreateExperiment(t *testing.T) {
 	}{
 		{
 			name:      "successful experiment creation and run",
-			projectID: "test-project-id",
+			projectID: projectID,
 			request: model.SaveChaosExperimentRequest{
 				ID:   "test-experiment-id",
 				Name: "test-experiment",
@@ -589,7 +589,7 @@ func TestCreateExperiment(t *testing.T) {
 		},
 		{
 			name:      "experiment creation with empty ID",
-			projectID: "test-project-id",
+			projectID: projectID,
 			request: model.SaveChaosExperimentRequest{
 				ID:   "",
 				Name: "test-experiment",
