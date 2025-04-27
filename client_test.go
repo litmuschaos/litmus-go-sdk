@@ -17,7 +17,7 @@ var (
 	
 	testEndpoint = "http://127.0.0.1:39651"
 	testUsername = "admin"
-	testPassword = "  litmus"	)
+	testPassword = "litmus"	)
 
 func init() {
 	// Override defaults with environment variables if set

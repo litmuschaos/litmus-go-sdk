@@ -214,7 +214,7 @@ The test suite is configured to use environment variables for test settings:
 
 - `LITMUS_TEST_ENDPOINT`: The endpoint URL for the Litmus API (default: "http://127.0.0.1:39651")
 - `LITMUS_TEST_USERNAME`: The username for authentication (default: "admin")
-- `LITMUS_TEST_PASSWORD`: The password for authentication (default: "  litmus")
+- `LITMUS_TEST_PASSWORD`: The password for authentication (default: "litmus")
 
 ### Running Tests
 
