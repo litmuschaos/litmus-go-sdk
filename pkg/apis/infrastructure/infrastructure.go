@@ -16,11 +16,8 @@ limitations under the License.
 package infrastructure
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/utils"
@@ -67,66 +64,21 @@ func ConnectInfra(infra types.Infra, cred types.Credentials) (InfraConnectionDat
 		}
 		registerRequest.Tolerations = toleration
 	}
-    
-    // Create GraphQL request payload
-    gqlReq := struct {
-        Query     string      `json:"query"`
-        Variables interface{} `json:"variables"`
-    }{
-        Query: RegisterInfraQuery,
-        Variables: struct {
-            ProjectID           string                     `json:"projectID"`
-            RegisterInfraRequest models.RegisterInfraRequest `json:"request"`
-        }{
-            ProjectID:           infra.ProjectID,
-            RegisterInfraRequest: registerRequest,
-        },
-    }
-    
-    // Marshal the request to JSON
-    payload, err := json.Marshal(gqlReq)
-    if err != nil {
-        return InfraConnectionData{}, fmt.Errorf("error marshaling request: %v", err)
-    }
-    
-    // Create a custom HTTP request with headers
-    req, err := http.NewRequest("POST", fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath), bytes.NewBuffer(payload))
-    if err != nil {
-        return InfraConnectionData{}, fmt.Errorf("error creating HTTP request: %v", err)
-    }
-    
-    // Set required headers
-    req.Header.Set("Content-Type", "application/json")
-    req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cred.Token))
-    req.Header.Set("Referer", cred.ServerEndpoint) 
-    
-    // Execute the request
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        return InfraConnectionData{}, fmt.Errorf("error executing HTTP request: %v", err)
-    }
-    defer resp.Body.Close()
-    
-    // Read and process the response
-    body, err := io.ReadAll(resp.Body)
-    if err != nil {
-        return InfraConnectionData{}, fmt.Errorf("error reading response body: %v", err)
-    }
-    
-    
-    // Unmarshal the response JSON
-    var result InfraConnectionData
-    if err := json.Unmarshal(body, &result); err != nil {
-        return InfraConnectionData{}, fmt.Errorf("error unmarshaling response: %v", err)
-    }
-        
-    // Check for GraphQL errors
-    if len(result.Errors) > 0 {
-        return result, fmt.Errorf("GraphQL error: %s", result.Errors[0].Message)
-    }
-    
-    return result, nil
+
+	return utils.SendGraphQLRequest[InfraConnectionData](
+		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		cred.Token,
+		RegisterInfraQuery,
+		struct {
+			ProjectID           string                      `json:"projectID"`
+			RegisterInfraRequest models.RegisterInfraRequest `json:"request"`
+		}{
+			ProjectID:           infra.ProjectID,
+			RegisterInfraRequest: registerRequest,
+		},
+		"Error in registering Chaos Infrastructure",
+	)
+
 }
 func CreateRegisterInfraRequest(infra types.Infra) models.RegisterInfraRequest {
 	return models.RegisterInfraRequest{

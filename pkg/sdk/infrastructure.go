@@ -113,7 +113,7 @@ func (c *infrastructureClient) Create(name string, config map[string]interface{}
 		return nil, fmt.Errorf("failed to create infrastructure: %w", err)
 	}
 
-	return response.Data.RegisterInfra.InfraID, nil
+	return response.RegisterInfra.InfraID, nil
 }
 
 // Delete removes an infrastructure resource
