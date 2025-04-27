@@ -19,10 +19,9 @@ import (
 
 // Test configuration with defaults
 var (
-	testEndpoint = " "
+	testEndpoint = "http://127.0.0.1:39651"
 	testUsername = "admin"
-	testPassword = "  "
-	
+	testPassword = "  litmus"	
 	// Store IDs as package-level variables for test access
 	projectID       string
 	environmentID   string
@@ -154,9 +153,9 @@ func seedInfrastructureData(credentials types.Credentials, projectID, environmen
 		log.Fatalf("Failed to register infrastructure: %v", err)
 	}
 
-	logger.Infof("Created infrastructure with ID: %s", infraResp.Data.RegisterInfraDetails.InfraID)
+	logger.Infof("Created infrastructure with ID: %s", infraResp.Data.RegisterInfra.InfraID)
 	
-	return infraResp.Data.RegisterInfraDetails.InfraID
+	return infraResp.Data.RegisterInfra.InfraID
 }
 
 func seedExperimentData(credentials types.Credentials, projectID, infrastructureID string) string {
@@ -167,6 +166,7 @@ func seedExperimentData(credentials types.Credentials, projectID, infrastructure
 	experimentRequest := model.SaveChaosExperimentRequest{
 		ID:   experimentID,
 		Name: "test-experiment",
+		InfraID: infrastructureID,
 	}
 	
 	_, err := SaveExperiment(projectID, experimentRequest, credentials)

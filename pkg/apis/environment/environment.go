@@ -105,7 +105,6 @@ func GetChaosEnvironment(pid string, envid string, cred types.Credentials) (GetE
         return response, fmt.Errorf("Error sending request: %v", err)
     }
     
-    fmt.Printf("Raw GraphQL response:\n%s\n", string(bodyBytes))
     
     if err := json.Unmarshal(bodyBytes, &response); err != nil {
         return response, fmt.Errorf("Error unmarshaling response: %v", err)
@@ -152,7 +151,6 @@ func DeleteEnvironment(pid string, envid string, cred types.Credentials) (Delete
         return response, fmt.Errorf("Error sending request: %v", err)
     }
     
-    fmt.Printf("Raw GraphQL response:\n%s\n", string(bodyBytes))
     
     if err := json.Unmarshal(bodyBytes, &response); err != nil {
         return response, fmt.Errorf("Error unmarshaling response: %v", err)

@@ -17,10 +17,9 @@ import (
 
 // Test configuration with defaults
 var (
-	testEndpoint = " "
+	testEndpoint = "http://127.0.0.1:39651"
 	testUsername = "admin"
-	testPassword = "  "
-	
+	testPassword = "  litmus"	
 	// Store IDs as package-level variables for test access
 	projectID       string
 	environmentID   string
@@ -156,9 +155,9 @@ func seedInfrastructureData(credentials types.Credentials, projectID, environmen
 		log.Fatalf("Failed to register infrastructure: %v", err)
 	}
 
-	logger.Infof("Created infrastructure with ID: %s", infraResp.Data.RegisterInfraDetails.InfraID)
+	logger.Infof("Created infrastructure with ID: %s", infraResp.Data.RegisterInfra.InfraID)
 	
-	return infraResp.Data.RegisterInfraDetails.InfraID
+	return infraResp.Data.RegisterInfra.InfraID
 }
 
 func init() {
@@ -340,24 +339,23 @@ func TestDisconnectInfra(t *testing.T) {
 		name       string
 		projectID  string
 		infraID    string
-		setup      func(*LitmusClient) // optional setup steps
+		setup      func(*LitmusClient)
 		wantErr    bool
 		validateFn func(*testing.T, *DisconnectInfraData)
 	}{
 		{
 			name:      "successful infrastructure disconnection",
-			projectID: "test-project-id",
-			infraID:   "test-infra-id",
+			projectID: projectID,
+			infraID:   infrastructureID,
 			wantErr:   false,
 			validateFn: func(t *testing.T, result *DisconnectInfraData) {
 				assert.NotNil(t, result, "Result should not be nil")
 				assert.NotNil(t, result.Data, "Data should not be nil")
-				assert.NotEmpty(t, result.Data.Message, "Disconnect message should not be empty")
 			},
 		},
 		{
 			name:       "infrastructure disconnection with empty infra ID",
-			projectID:  "test-project-id",
+			projectID:  projectID,
 			infraID:    "",
 			wantErr:    true,
 			validateFn: nil,

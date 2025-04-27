@@ -16,10 +16,9 @@ import (
 
 // Test configuration with defaults
 var (
-	testEndpoint = " "
+	testEndpoint = "http://127.0.0.1:39651"
 	testUsername = "admin"
-	testPassword = ""
-	
+	testPassword = "  litmus"	
 	// Store IDs as package-level variables for test access
 	projectID     string
 	environmentID string
