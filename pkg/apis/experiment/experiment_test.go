@@ -17,7 +17,7 @@ import (
 var (
 	testEndpoint = "http://127.0.0.1:39651"
 	testUsername = "admin"
-	testPassword = "LitmusChaos123@"
+	testPassword = "  litmus"
 )
 
 func init() {
