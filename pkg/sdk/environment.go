@@ -54,7 +54,7 @@ func (c *environmentClient) List() (interface{}, error) {
 		return nil, fmt.Errorf("failed to list environments: %w", err)
 	}
 
-	return response.Data.ListEnvironmentDetails, nil
+	return response.ListEnvironments, nil
 }
 
 // Create creates a new environment
@@ -80,7 +80,7 @@ func (c *environmentClient) Create(name string, config map[string]interface{}) (
 		return nil, fmt.Errorf("failed to create environment: %w", err)
 	}
 
-	return response.Data.CreateEnvironment.EnvironmentID, nil
+	return response.CreateEnvironment.EnvironmentID, nil
 }
 
 // Delete removes an environment
@@ -124,5 +124,5 @@ func (c *environmentClient) Get(id string) (interface{}, error) {
 		return nil, fmt.Errorf("failed to get environment: %w", err)
 	}
 
-	return response.Data.GetEnvironment, nil
+	return response.GetEnvironment, nil
 }

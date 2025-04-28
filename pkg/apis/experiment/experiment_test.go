@@ -120,9 +120,9 @@ func seedEnvironmentData(credentials types.Credentials, projectID string) string
 		log.Fatalf("Failed to create environment: %v", err)
 	}
 
-	logger.Infof("Created environment with ID: %s", envResp.Data.CreateEnvironment.EnvironmentID)
+	logger.Infof("Created environment with ID: %s", envResp.CreateEnvironment.EnvironmentID)
 
-	return envResp.Data.CreateEnvironment.EnvironmentID
+	return envResp.CreateEnvironment.EnvironmentID
 }
 
 func seedInfrastructureData(credentials types.Credentials, projectID, environmentID string) string {

@@ -107,9 +107,9 @@ func seedEnvironmentData(credentials types.Credentials, projectID string) string
         log.Fatalf("Failed to create environment: %v", err)
     }
 
-    logger.Infof("Created environment with ID: %s", envResp.Data.CreateEnvironment.EnvironmentID)
+    logger.Infof("Created environment with ID: %s", envResp.CreateEnvironment.EnvironmentID)
 
-    return envResp.Data.CreateEnvironment.EnvironmentID
+    return envResp.CreateEnvironment.EnvironmentID
 }
 
 func init() {
@@ -163,7 +163,7 @@ func TestCreateEnvironment(t *testing.T) {
 		request    model.CreateEnvironmentRequest
 		setup      func(*LitmusClient)
 		wantErr    bool
-		validateFn func(*testing.T, *CreateEnvironmentResponse)
+		validateFn func(*testing.T, *CreateEnvironmentData)
 	}{
 		{
 			name:      "successful environment creation",
@@ -228,16 +228,16 @@ func TestListChaosEnvironments(t *testing.T) {
 			validateFn: func(t *testing.T, result *ListEnvironmentData) {
 				assert.NotNil(t, result, "Result should not be nil")
 				// If Data is nil, initialize it to avoid nil pointer panics
-				if result.Data.ListEnvironmentDetails.Environments == nil {
+				if result.ListEnvironments.Environments == nil {
 					t.Log("Environments list was nil, expected non-nil")
 					// We'll still pass the test, but log the issue
 					// This handles the case where the API response is empty but not an error
 					return
 				}
 
-				assert.NotNil(t, result.Data, "Data should not be nil")
-				assert.NotNil(t, result.Data.ListEnvironmentDetails, "ListEnvironmentDetails should not be nil")
-				assert.NotNil(t, result.Data.ListEnvironmentDetails.Environments,
+				assert.NotNil(t, result.ListEnvironments, "Data should not be nil")
+				assert.NotNil(t, result.ListEnvironments.Environments, "ListEnvironmentDetails should not be nil")
+				assert.NotNil(t, result.ListEnvironments.Environments,
 					"Environments list should not be nil")
 			},
 		},
@@ -292,9 +292,9 @@ func TestGetChaosEnvironment(t *testing.T) {
 			wantErr:       false,
 			validateFn: func(t *testing.T, result *GetEnvironmentData) {
 				assert.NotNil(t, result, "Result should not be nil")
-				assert.NotNil(t, result.Data, "Data should not be nil")
-				assert.NotEmpty(t, result.Data.GetEnvironment.Name, "Environment name should not be empty")
-				assert.Equal(t, environmentID, result.Data.GetEnvironment.EnvironmentID, "Environment ID should match")
+				assert.NotNil(t, result.GetEnvironment, "Data should not be nil")
+				assert.NotEmpty(t, result.GetEnvironment.Name, "Environment name should not be empty")
+				assert.Equal(t, environmentID, result.GetEnvironment.EnvironmentID, "Environment ID should match")
 			},
 		},
 		{
@@ -349,8 +349,8 @@ func TestDeleteEnvironment(t *testing.T) {
 			wantErr:       false,
 			validateFn: func(t *testing.T, result *DeleteChaosEnvironmentData) {
 				assert.NotNil(t, result, "Result should not be nil")
-				assert.NotNil(t, result.Data, "Data should not be nil")
-				assert.NotEmpty(t, result.Data.DeleteEnvironment, "Delete message should not be empty")
+					assert.NotNil(t, result.DeleteEnvironment, "Data should not be nil")
+				assert.NotEmpty(t, result.DeleteEnvironment, "Delete message should not be empty")
 			},
 		},
 		{

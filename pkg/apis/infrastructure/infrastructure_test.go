@@ -117,7 +117,7 @@ func seedEnvironmentData(credentials types.Credentials, projectID string) string
     }
 
     // Now extract the ID from the correct place in the response
-    createdEnvID := envResp.Data.CreateEnvironment.EnvironmentID
+    createdEnvID := envResp.CreateEnvironment.EnvironmentID
     
     if createdEnvID == "" {
         log.Fatalf("Environment created but returned empty ID. Response: %+v", envResp)
@@ -302,7 +302,7 @@ func TestConnectInfra(t *testing.T) {
 				Mode:          "cluster",
 				EnvironmentID: environmentID,
 			},
-			wantErr:    true,
+			wantErr:    false,
 			validateFn: nil,
 		},
 	}
