@@ -205,8 +205,7 @@ func TestMain(m *testing.M) {
 	}
 	
 	// Store project ID in credentials for convenience
-	credentials.ProjectID = "2b0de423-befa-4516-a09a-6441e4fa1703" // added as this is the current active project
-	projectID = "2b0de423-befa-4516-a09a-6441e4fa1703" // added as this is the current active project
+	credentials.ProjectID = projectID
 
 	// 1. Seed Environment Data
 	logger.Infof("Seeding Environment data...")
@@ -215,7 +214,6 @@ func TestMain(m *testing.M) {
 	// 2. Seed Infrastructure Data
 	logger.Infof("Seeding Infrastructure data...")
 	infrastructureID = seedInfrastructureData(credentials, projectID, environmentID)
-	infrastructureID = "26ba9da1-19b5-4093-a9e4-0862517188c1" // added as this is the current active infrastructure
 	
 	examineExistingExperiment(credentials, projectID)
 	// 3. Seed Experiment Data
