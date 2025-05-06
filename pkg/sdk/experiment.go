@@ -70,7 +70,7 @@ func (c *experimentClient) List() (interface{}, error) {
 		return nil, fmt.Errorf("failed to list experiments: %w", err)
 	}
 
-	return response.Data.ListExperimentDetails, nil
+	return response, nil
 }
 
 // Create creates a new experiment
@@ -117,7 +117,7 @@ func (c *experimentClient) Delete(id string) error {
 		return fmt.Errorf("failed to delete experiment: %w", err)
 	}
 
-	if !response.Data.IsDeleted {
+	if !response.IsDeleted {
 		return fmt.Errorf("experiment deletion was not successful")
 	}
 
@@ -143,6 +143,7 @@ func (c *experimentClient) Update(id string, config map[string]interface{}) (int
 		ID: id,
 	}
 	
+
 	saveResp, err := experiment.SaveExperiment(c.credentials.ProjectID, request, c.credentials)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update experiment: %w", err)
@@ -170,7 +171,7 @@ func (c *experimentClient) Get(runID string) (interface{}, error) {
 	}
 
 	// Return the full experiment run data
-	return response.Data.ExperimentRun, nil
+	return response.ExperimentRun, nil
 }
 
 // Run starts an experiment
@@ -206,8 +207,8 @@ func (c *experimentClient) GetRunPhase(runID string) (string, error) {
 	}
 
 	// Extract just the phase from the experiment run data
-	if experimentRun, ok := runData.(experiment.ExperimentRunResponse); ok {
-		return experimentRun.Phase, nil
+	if experimentRun, ok := runData.(models.ExperimentRun); ok {
+		return string(experimentRun.Phase), nil
 	}
 	
 	return "", fmt.Errorf("unexpected format for experiment run data")
