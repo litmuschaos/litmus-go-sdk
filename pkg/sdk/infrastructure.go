@@ -26,16 +26,16 @@ import (
 // InfrastructureClient defines the interface for infrastructure operations
 type InfrastructureClient interface {
 	// List retrieves all infrastructure resources
-	List() (interface{}, error)
+	List() (models.ListInfraResponse, error)
 
 	// Create creates a new infrastructure resource
-	Create(name string, config map[string]interface{}) (interface{}, error)
+	Create(name string, config map[string]interface{}) (string, error)
 
 	// Delete removes an infrastructure resource
 	Delete(id string) error
 
 	// Get retrieves infrastructure details
-	Get(id string) (interface{}, error)
+	Get(id string) (*models.Infra, error)
 
 	// Disconnect terminates a connection to an infrastructure
 	Disconnect(id string) error
@@ -47,33 +47,33 @@ type infrastructureClient struct {
 }
 
 // List retrieves all infrastructure resources
-func (c *infrastructureClient) List() (interface{}, error) {
+func (c *infrastructureClient) List() (models.ListInfraResponse, error) {
 	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
+		return models.ListInfraResponse{}, fmt.Errorf("server endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
-		return nil, fmt.Errorf("project ID not set in credentials")
+		return models.ListInfraResponse{}, fmt.Errorf("project ID not set in credentials")
 	}
 
 	request := models.ListInfraRequest{}
 	
 	response, err := infrastructure.GetInfraList(c.credentials, c.credentials.ProjectID, request)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list infrastructure resources: %w", err)
+		return models.ListInfraResponse{}, fmt.Errorf("failed to list infrastructure resources: %w", err)
 	}
 
 	return response.Data.ListInfraDetails, nil
 }
 
 // Create creates a new infrastructure resource
-func (c *infrastructureClient) Create(name string, config map[string]interface{}) (interface{}, error) {
+func (c *infrastructureClient) Create(name string, config map[string]interface{}) (string, error) {
 	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
+		return "", fmt.Errorf("server endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
-		return nil, fmt.Errorf("project ID not set in credentials")
+		return "", fmt.Errorf("project ID not set in credentials")
 	}
 
 	// Extract values from config or use defaults
@@ -110,7 +110,7 @@ func (c *infrastructureClient) Create(name string, config map[string]interface{}
 
 	response, err := infrastructure.ConnectInfra(infra, c.credentials)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create infrastructure: %w", err)
+		return "", fmt.Errorf("failed to create infrastructure: %w", err)
 	}
 
 	return response.RegisterInfra.InfraID, nil
@@ -122,7 +122,7 @@ func (c *infrastructureClient) Delete(id string)  error {
 }
 
 // Get retrieves infrastructure details
-func (c *infrastructureClient) Get(id string) (interface{}, error) {
+func (c *infrastructureClient) Get(id string) (*models.Infra, error) {
 	if c.credentials.ServerEndpoint == "" {
 		return nil, fmt.Errorf("server endpoint not set in credentials")
 	}
