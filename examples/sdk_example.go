@@ -5,6 +5,7 @@ import (
 
 	"github.com/litmuschaos/litmus-go-sdk/pkg/logger"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/sdk"
+	"github.com/litmuschaos/litmus/chaoscenter/graphql/server/graph/model"
 )
 
 func CompleteSDKExample() {
@@ -66,7 +67,7 @@ func CompleteSDKExample() {
 	// ======== Experiment Operations ========
 
 	// List experiments
-	experiments, err := client.Experiments().List()
+	experiments, err := client.Experiments().List(model.ListExperimentRequest{})
 	if err != nil {
 		logger.Fatalf("Failed to list experiments: %v", err)
 	}

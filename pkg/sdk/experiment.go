@@ -26,7 +26,7 @@ import (
 // ExperimentClient defines the interface for experiment operations
 type ExperimentClient interface {
 	// List retrieves all experiments
-	List() (models.ListExperimentResponse, error)
+	List(models.ListExperimentRequest) (models.ListExperimentResponse, error)
 
 	// Create creates a new experiment
 	Create(name string, config map[string]interface{}) (string, error)
@@ -53,7 +53,7 @@ type experimentClient struct {
 }
 
 // List retrieves all experiments
-func (c *experimentClient) List() (models.ListExperimentResponse, error) {
+func (c *experimentClient) List(request models.ListExperimentRequest) (models.ListExperimentResponse, error) {
 	if c.credentials.ServerEndpoint == "" {
 		return models.ListExperimentResponse{}, fmt.Errorf("server endpoint not set in credentials")
 	}
@@ -61,8 +61,6 @@ func (c *experimentClient) List() (models.ListExperimentResponse, error) {
 	if c.credentials.ProjectID == "" {
 		return models.ListExperimentResponse{}, fmt.Errorf("project ID not set in credentials")
 	}
-
-	request := models.ListExperimentRequest{}
 	
 	response, err := experiment.GetExperimentList(c.credentials.ProjectID, request, c.credentials)
 	if err != nil {
