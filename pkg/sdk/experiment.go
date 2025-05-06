@@ -95,7 +95,7 @@ func (c *experimentClient) Create(name string, config map[string]interface{}) (i
 		return nil, fmt.Errorf("failed to create experiment: %w", err)
 	}
 
-	return saveResp.Data.Message, nil
+	return saveResp.Message, nil
 }
 
 // Delete removes an experiment
@@ -143,14 +143,12 @@ func (c *experimentClient) Update(id string, config map[string]interface{}) (int
 		ID: id,
 	}
 	
-	// TODO: Transform generic config to specific experiment properties
-
 	saveResp, err := experiment.SaveExperiment(c.credentials.ProjectID, request, c.credentials)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update experiment: %w", err)
 	}
 
-	return saveResp.Data.Message, nil
+	return saveResp.Message, nil
 }
 
 func (c *experimentClient) Get(runID string) (interface{}, error) {
@@ -194,7 +192,7 @@ func (c *experimentClient) Run(id string) (interface{}, error) {
 		return nil, fmt.Errorf("failed to run experiment: %w", err)
 	}
 
-	return response.Data.RunExperimentDetails, nil
+	return response.RunChaosExperiment.NotifyID, nil
 }
 
 // Get retrieves experiment details

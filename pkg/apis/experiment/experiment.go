@@ -24,7 +24,7 @@ import (
 )
 
 // CreateExperiment sends GraphQL API request for creating a Experiment
-func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, cred types.Credentials) (RunExperimentResponse, error) {
+func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, cred types.Credentials) (RunExperimentData, error) {
 	// Save the experiment
 	_, err := utils.SendGraphQLRequest[SaveExperimentData](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
@@ -41,11 +41,11 @@ func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, 
 	)
 	if err != nil {
 		utils.LogError("Error in saving Chaos Experiment", err)
-		return RunExperimentResponse{}, err
+		return RunExperimentData{}, err
 	}
 
 	// Run the experiment
-	runExperiment, err := utils.SendGraphQLRequest[RunExperimentResponse](
+	runExperiment, err := utils.SendGraphQLRequest[RunExperimentData](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
 		cred.Token,
 		RunExperimentQuery,
@@ -60,7 +60,7 @@ func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, 
 	)
 	if err != nil {
 		utils.LogError("Error in running Chaos Experiment", err)
-		return RunExperimentResponse{}, err
+		return RunExperimentData{}, err
 	}
 
 	return runExperiment, nil
@@ -82,8 +82,8 @@ func SaveExperiment(pid string, requestData model.SaveChaosExperimentRequest, cr
 	)
 }
 
-func RunExperiment(pid string, eid string, cred types.Credentials) (RunExperimentResponse, error) {
-	return utils.SendGraphQLRequest[RunExperimentResponse](
+func RunExperiment(pid string, eid string, cred types.Credentials) (RunExperimentData, error) {
+	return utils.SendGraphQLRequest[RunExperimentData](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
 		cred.Token,
 		RunExperimentQuery,

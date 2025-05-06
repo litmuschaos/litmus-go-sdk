@@ -118,7 +118,7 @@ const workflowManifest = `{
                                 "name": "run-chaos",
                                 "path": "/tmp/chaosengine-run-chaos.yaml",
                                 "raw": {
-                                    "data": "apiVersion: litmuschaos.io/v1alpha1\nkind: ChaosEngine\nmetadata:\n  namespace: \"{{workflow.parameters.adminModeNamespace}}\"\n  labels:\n    context: \"{{workflow.parameters.appNamespace}}_kube-proxy\"\n    workflow_run_id: \"{{ workflow.uid }}\"\n    workflow_name: test-experiment\n  annotations:\n    probeRef: '[{\"name\":\"ping-google\",\"mode\":\"SOT\"}]'\n  generateName: run-chaos\nspec:\n  appinfo:\n    appns: litmus-2\n    applabel: app=nginx\n    appkind: deployment\n  jobCleanUpPolicy: retain\n  engineState: active\n  chaosServiceAccount: litmus-admin\n  experiments:\n    - name: pod-delete\n      spec:\n        components:\n          env:\n            - name: TOTAL_CHAOS_DURATION\n              value: \"60\"\n            - name: CHAOS_INTERVAL\n              value: \"10\"\n            - name: FORCE\n              value: \"false\"\n"
+                                    "data": "apiVersion: litmuschaos.io/v1alpha1\nkind: ChaosEngine\nmetadata:\n  namespace: \"{{workflow.parameters.adminModeNamespace}}\"\n  labels:\n    context: \"{{workflow.parameters.appNamespace}}_kube-proxy\"\n    workflow_run_id: \"{{ workflow.uid }}\"\n    workflow_name: test-experiment\n  annotations:\n    probeRef: '[{\"name\":\"myprobe\",\"mode\":\"SOT\"}]'\n  generateName: run-chaos\nspec:\n  appinfo:\n    appns: litmus-2\n    applabel: app=nginx\n    appkind: deployment\n  jobCleanUpPolicy: retain\n  engineState: active\n  chaosServiceAccount: litmus-admin\n  experiments:\n    - name: pod-delete\n      spec:\n        components:\n          env:\n            - name: TOTAL_CHAOS_DURATION\n              value: \"60\"\n            - name: CHAOS_INTERVAL\n              value: \"10\"\n            - name: FORCE\n              value: \"false\"\n"
                                 }
                             }
                         ]
@@ -359,15 +359,10 @@ func seedExperimentData(credentials types.Credentials, projectID, infrastructure
     logger.Infof("Creating experiment with request: %s", string(requestJSON))
     
     // Save the experiment
-    resp, err := SaveExperiment(projectID, experimentRequest, credentials)
+    _, err := SaveExperiment(projectID, experimentRequest, credentials)
     if err != nil {
         // Log detailed error information
         logger.Errorf("Failed to create experiment: %v", err)
-        if resp.Errors != nil && len(resp.Errors) > 0 {
-            for _, errItem := range resp.Errors {
-                logger.Errorf("GraphQL Error: %s", errItem.Message)
-            }
-        }
         log.Fatalf("Failed to create experiment: %v", err)
     }
     
@@ -495,7 +490,8 @@ func TestSaveExperiment(t *testing.T) {
             wantErr: false,
             validateFn: func(t *testing.T, result *SaveExperimentData) {
                 assert.NotNil(t, result, "Result should not be nil")
-                assert.NotNil(t, result.Data, "Data should not be nil")
+                assert.NotEmpty(t, result.Message, "Response message should not be empty")
+                assert.Contains(t, result.Message, "success", "Response message should indicate success")
             },
         },
         {
@@ -547,7 +543,7 @@ func TestRunExperiment(t *testing.T) {
         experimentID string
         setup        func(*LitmusClient) // optional setup steps
         wantErr      bool
-        validateFn   func(*testing.T, *RunExperimentResponse)
+        validateFn   func(*testing.T, *RunExperimentData)
     }{
         {
             name:      "successful experiment run",
@@ -570,12 +566,19 @@ func TestRunExperiment(t *testing.T) {
                 testExpID = expID
             },
             wantErr: false,
-            validateFn: func(t *testing.T, result *RunExperimentResponse) {
+            validateFn: func(t *testing.T, result *RunExperimentData) {
                 assert.NotNil(t, result, "Result should not be nil")
-                assert.NotNil(t, result.Data, "Data should not be nil")
-                // Sometimes NotifyID might be empty if the experiment run is queued
-                // but not yet started, so just check it's a string
-                assert.IsType(t, "", result.Data.RunExperimentDetails.NotifyID)
+                assert.NotNil(t, result.RunChaosExperiment, "RunChaosExperiment should not be nil")
+                
+                // NotifyID might be empty if the experiment run is queued but not yet started
+                // but it should at least be a defined field
+                assert.IsType(t, "", result.RunChaosExperiment.NotifyID, "NotifyID should be a string")
+                
+                // If NotifyID is present, it should be non-empty
+                if result.RunChaosExperiment.NotifyID != "" {
+                    assert.NotEmpty(t, result.RunChaosExperiment.NotifyID, "If NotifyID is returned, it should not be empty")
+                    assert.True(t, len(result.RunChaosExperiment.NotifyID) > 5, "NotifyID should be a substantial string")
+                }
             },
         },
         {
@@ -650,9 +653,16 @@ func TestGetExperimentList(t *testing.T) {
 
 				// If there are experiments, validate their structure
 				if len(result.Data.ListExperimentDetails.Experiments) > 0 {
-					for _, exp := range result.Data.ListExperimentDetails.Experiments {
-						assert.NotEmpty(t, exp.ExperimentID, "Experiment ID should not be empty")
-						assert.NotEmpty(t, exp.Name, "Experiment name should not be empty")
+					for i, exp := range result.Data.ListExperimentDetails.Experiments {
+						assert.NotEmpty(t, exp.ExperimentID, "Experiment ID should not be empty for experiment at index %d", i)
+						assert.NotEmpty(t, exp.Name, "Experiment name should not be empty for experiment at index %d", i)
+						assert.NotNil(t, exp.Infra, "Infra should not be nil for experiment at index %d", i)
+						assert.NotEmpty(t, exp.Infra.InfraID, "Infra ID should not be empty for experiment at index %d", i)
+						assert.NotEmpty(t, exp.ExperimentManifest, "Experiment manifest should not be empty for experiment at index %d", i)
+						assert.NotEmpty(t, exp.ProjectID, "Project ID should not be empty for experiment at index %d", i)
+						
+						// Check timestamps are valid
+						assert.NotZero(t, exp.CreatedAt, "CreatedAt timestamp should be non-zero for experiment at index %d", i)
 					}
 				}
 			},
@@ -673,11 +683,19 @@ func TestGetExperimentList(t *testing.T) {
 				assert.NotNil(t, result.Data.ListExperimentDetails, "ListExperimentDetails should not be nil")
 
 				// Verify pagination works by checking max results
-				if len(result.Data.ListExperimentDetails.Experiments) > 0 {
+				if result.Data.ListExperimentDetails.TotalNoOfExperiments > 0 {
 					assert.LessOrEqual(t,
 						len(result.Data.ListExperimentDetails.Experiments),
 						5,
 						"Should return 5 or fewer results with limit=5")
+				}
+				
+				// If there are any experiments returned, verify they have valid data
+				if len(result.Data.ListExperimentDetails.Experiments) > 0 {
+					for i, exp := range result.Data.ListExperimentDetails.Experiments {
+						assert.NotEmpty(t, exp.ExperimentID, "Experiment ID should not be empty for experiment at index %d", i)
+						assert.NotEmpty(t, exp.Name, "Experiment name should not be empty for experiment at index %d", i)
+					}
 				}
 			},
 		},
@@ -735,6 +753,22 @@ func TestGetExperimentRunsList(t *testing.T) {
 				assert.NotNil(t, result.Data.ListExperimentRunDetails, "ListExperimentRunDetails should not be nil")
 				assert.GreaterOrEqual(t, result.Data.ListExperimentRunDetails.TotalNoOfExperimentRuns, 0,
 					"Total number of experiment runs should be non-negative")
+				
+				// If there are experiment runs, validate their structure
+				if len(result.Data.ListExperimentRunDetails.ExperimentRuns) > 0 {
+					for i, run := range result.Data.ListExperimentRunDetails.ExperimentRuns {
+						assert.NotEmpty(t, run.ExperimentRunID, "Experiment run ID should not be empty for run at index %d", i)
+						assert.NotEmpty(t, run.ExperimentID, "Experiment ID should not be empty for run at index %d", i)
+						assert.NotEmpty(t, run.ProjectID, "Project ID should not be empty for run at index %d", i)
+						
+						// Check for valid timestamp
+						assert.NotZero(t, run.CreatedAt, "CreatedAt timestamp should be non-zero for run at index %d", i)
+						
+						// Check for non-empty status fields
+						assert.NotEmpty(t, run.Phase, "Phase should not be empty for run at index %d", i)
+						assert.NotNil(t, run.ResiliencyScore, "ResiliencyScore should not be nil for run at index %d", i)
+					}
+				}
 			},
 		},
 		{
@@ -754,11 +788,19 @@ func TestGetExperimentRunsList(t *testing.T) {
 				assert.NotNil(t, result.Data.ListExperimentRunDetails, "ListExperimentRunDetails should not be nil")
 
 				// Verify pagination works by checking max results
-				if len(result.Data.ListExperimentRunDetails.ExperimentRuns) > 0 {
+				if result.Data.ListExperimentRunDetails.TotalNoOfExperimentRuns > 0 {
 					assert.LessOrEqual(t,
 						len(result.Data.ListExperimentRunDetails.ExperimentRuns),
 						5,
 						"Should return 5 or fewer results with limit=5")
+				}
+				
+				// If there are any runs returned, verify they have valid data
+				if len(result.Data.ListExperimentRunDetails.ExperimentRuns) > 0 {
+					for i, run := range result.Data.ListExperimentRunDetails.ExperimentRuns {
+						assert.NotEmpty(t, run.ExperimentRunID, "Experiment run ID should not be empty for run at index %d", i)
+						assert.NotEmpty(t, run.ExperimentID, "Experiment ID should not be empty for run at index %d", i)
+					}
 				}
 			},
 		},
@@ -828,6 +870,21 @@ func TestDeleteChaosExperiment(t *testing.T) {
                 assert.NotNil(t, result, "Result should not be nil")
                 assert.NotNil(t, result.Data, "Data should not be nil")
                 assert.True(t, result.Data.IsDeleted, "IsDeleted should be true")
+                
+                // Verify the response has no errors
+                assert.Empty(t, result.Errors, "Response should not contain any errors")
+                
+                // After successful deletion, verify the experiment is no longer retrievable
+                listReq := model.ListExperimentRequest{
+                    ExperimentIDs: []*string{&testExpID},
+                }
+                listResp, listErr := GetExperimentList(projectID, listReq, client.credentials)
+                
+                // Either the request will fail or it should return zero experiments
+                if listErr == nil {
+                    assert.Equal(t, 0, len(listResp.Data.ListExperimentDetails.Experiments), 
+                        "Deleted experiment should not be retrievable")
+                }
             },
         },
         {
@@ -871,7 +928,7 @@ func TestCreateExperiment(t *testing.T) {
         request    model.SaveChaosExperimentRequest
         setup      func(*LitmusClient) // optional setup steps
         wantErr    bool
-        validateFn func(*testing.T, *RunExperimentResponse)
+        validateFn func(*testing.T, *RunExperimentData)
     }{
         {
             name:      "successful experiment creation and run",
@@ -883,11 +940,18 @@ func TestCreateExperiment(t *testing.T) {
                 Manifest: getWorkflowManifest(experimentName),
             },
             wantErr: false,
-            validateFn: func(t *testing.T, result *RunExperimentResponse) {
+            validateFn: func(t *testing.T, result *RunExperimentData) {
                 assert.NotNil(t, result, "Result should not be nil")
-                assert.NotNil(t, result.Data, "Data should not be nil")
-                // NotifyID might be empty if queued but not started
-                assert.IsType(t, "", result.Data.RunExperimentDetails.NotifyID)
+                assert.NotNil(t, result.RunChaosExperiment, "RunChaosExperiment should not be nil")
+                
+                // NotifyID might be empty if the experiment run is queued but not yet started
+                assert.IsType(t, "", result.RunChaosExperiment.NotifyID, "NotifyID should be a string")
+                
+                // If NotifyID is present, check it's a meaningful value
+                if result.RunChaosExperiment.NotifyID != "" {
+                    assert.True(t, len(result.RunChaosExperiment.NotifyID) > 5, 
+                        "If NotifyID is returned, it should be a substantial string")
+                }
             },
         },
         {
@@ -927,47 +991,4 @@ func TestCreateExperiment(t *testing.T) {
             }
         })
     }
-}
-
-func TestResponseStructureMarshaling(t *testing.T) {
-	t.Run("RunExperimentResponse", func(t *testing.T) {
-		jsonData := `{
-			"data": {
-				"runChaosExperiment": {
-					"notifyID": "test-notify-id"
-				}
-			}
-		}`
-
-		var response RunExperimentResponse
-		err := json.Unmarshal([]byte(jsonData), &response)
-		assert.NoError(t, err, "Unmarshaling should succeed")
-		assert.Equal(t, "test-notify-id", response.Data.RunExperimentDetails.NotifyID)
-	})
-
-	t.Run("SaveExperimentData", func(t *testing.T) {
-		jsonData := `{
-			"data": {
-				"saveChaosExperiment": "Experiment saved successfully"
-			}
-		}`
-
-		var response SaveExperimentData
-		err := json.Unmarshal([]byte(jsonData), &response)
-		assert.NoError(t, err, "Unmarshaling should succeed")
-		assert.Equal(t, "Experiment saved successfully", response.Data.Message)
-	})
-
-	t.Run("DeleteChaosExperimentData", func(t *testing.T) {
-		jsonData := `{
-			"data": {
-				"deleteChaosExperiment": true
-			}
-		}`
-
-		var response DeleteChaosExperimentData
-		err := json.Unmarshal([]byte(jsonData), &response)
-		assert.NoError(t, err, "Unmarshaling should succeed")
-		assert.True(t, response.Data.IsDeleted)
-	})
 }

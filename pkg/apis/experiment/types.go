@@ -2,17 +2,18 @@ package experiment
 
 import "github.com/litmuschaos/litmus/chaoscenter/graphql/server/graph/model"
 
-type SaveExperimentData struct {
+type SaveExperimentResponse struct {
 	Errors []struct {
 		Message string   `json:"message"`
 		Path    []string `json:"path"`
 	} `json:"errors"`
-	Data SavedExperimentDetails `json:"data"`
+	Data SaveExperimentData `json:"data"`
 }
 
-type SavedExperimentDetails struct {
+type SaveExperimentData struct {
 	Message string `json:"saveChaosExperiment"`
 }
+
 
 type SaveChaosExperimentGraphQLRequest struct {
 	Query     string `json:"query"`
@@ -31,7 +32,9 @@ type RunExperimentResponse struct {
 }
 
 type RunExperimentData struct {
-	RunExperimentDetails model.RunChaosExperimentResponse `json:"runChaosExperiment"`
+    RunChaosExperiment struct {
+        NotifyID string `json:"notifyID"`
+    } `json:"runChaosExperiment"`
 }
 
 type ExperimentListData struct {
