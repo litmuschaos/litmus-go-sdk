@@ -216,7 +216,7 @@ func TestMain(m *testing.M) {
 	logger.Infof("Seeding Infrastructure data...")
 	infrastructureID = seedInfrastructureData(credentials, projectID, environmentID)
 	
-	examineExistingExperiment(credentials, projectID)
+	cloneExistingExperiment(credentials, projectID)
 	// 3. Seed Experiment Data
 	logger.Infof("Seeding Experiment data...")
 	experimentID = seedExperimentData(credentials, projectID, infrastructureID)
@@ -284,7 +284,7 @@ func seedInfrastructureData(credentials types.Credentials, projectID, environmen
 	return infraResp.RegisterInfra.InfraID
 }
 
-func examineExistingExperiment(credentials types.Credentials, projectID string) {
+func cloneExistingExperiment(credentials types.Credentials, projectID string) {
     // Use the provided experiment ID
     existingExperimentID := "4813cc63-753e-4d2e-80a0-fba935a2f75d"
     
