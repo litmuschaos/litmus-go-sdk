@@ -14,6 +14,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Getenv fetches the env and returns the default value if env is empty
+func Getenv(key string, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		value = defaultValue
+	}
+	return value
+}
+
 // Test configuration with defaults
 var (
 	testEndpoint = "http://127.0.0.1:39651"
@@ -28,15 +37,9 @@ var (
 
 func TestMain(m *testing.M) {
 	// Override defaults with environment variables if set
-	if endpoint := os.Getenv("LITMUS_TEST_ENDPOINT"); endpoint != "" {
-		testEndpoint = endpoint
-	}
-	if username := os.Getenv("LITMUS_TEST_USERNAME"); username != "" {
-		testUsername = username
-	}
-	if password := os.Getenv("LITMUS_TEST_PASSWORD"); password != "" {
-		testPassword = password
-	}
+	testEndpoint = Getenv("LITMUS_TEST_ENDPOINT", testEndpoint)
+	testUsername = Getenv("LITMUS_TEST_USERNAME", testUsername)
+	testPassword = Getenv("LITMUS_TEST_PASSWORD", testPassword)
 
 	logger.Infof("Test configuration - Endpoint: %s, Username: %s", testEndpoint, testUsername)
 	
@@ -124,15 +127,9 @@ func seedProbeData(credentials types.Credentials, projectID string) (string, str
 
 func init() {
 	// Override defaults with environment variables if set
-	if endpoint := os.Getenv("LITMUS_TEST_ENDPOINT"); endpoint != "" {
-		testEndpoint = endpoint
-	}
-	if username := os.Getenv("LITMUS_TEST_USERNAME"); username != "" {
-		testUsername = username
-	}
-	if password := os.Getenv("LITMUS_TEST_PASSWORD"); password != "" {
-		testPassword = password
-	}
+	testEndpoint = Getenv("LITMUS_TEST_ENDPOINT", testEndpoint)
+	testUsername = Getenv("LITMUS_TEST_USERNAME", testUsername)
+	testPassword = Getenv("LITMUS_TEST_PASSWORD", testPassword)
 
 	logger.Infof("Test configuration - Endpoint: %s, Username: %s", testEndpoint, testUsername)
 }
