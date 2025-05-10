@@ -24,7 +24,7 @@ import (
 )
 
 // CreateExperiment sends GraphQL API request for creating a Experiment
-func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, cred types.Credentials) (RunExperimentResponse, error) {
+func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, cred types.Credentials) (RunExperimentData, error) {
 	// Save the experiment
 	_, err := utils.SendGraphQLRequest[SaveExperimentData](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
@@ -41,11 +41,11 @@ func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, 
 	)
 	if err != nil {
 		utils.LogError("Error in saving Chaos Experiment", err)
-		return RunExperimentResponse{}, err
+		return RunExperimentData{}, err
 	}
 
 	// Run the experiment
-	runExperiment, err := utils.SendGraphQLRequest[RunExperimentResponse](
+	runExperiment, err := utils.SendGraphQLRequest[RunExperimentData](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
 		cred.Token,
 		RunExperimentQuery,
@@ -60,7 +60,7 @@ func CreateExperiment(pid string, requestData model.SaveChaosExperimentRequest, 
 	)
 	if err != nil {
 		utils.LogError("Error in running Chaos Experiment", err)
-		return RunExperimentResponse{}, err
+		return RunExperimentData{}, err
 	}
 
 	return runExperiment, nil
@@ -82,8 +82,8 @@ func SaveExperiment(pid string, requestData model.SaveChaosExperimentRequest, cr
 	)
 }
 
-func RunExperiment(pid string, eid string, cred types.Credentials) (RunExperimentResponse, error) {
-	return utils.SendGraphQLRequest[RunExperimentResponse](
+func RunExperiment(pid string, eid string, cred types.Credentials) (RunExperimentData, error) {
+	return utils.SendGraphQLRequest[RunExperimentData](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
 		cred.Token,
 		RunExperimentQuery,
@@ -99,8 +99,8 @@ func RunExperiment(pid string, eid string, cred types.Credentials) (RunExperimen
 }
 
 // GetExperimentList sends GraphQL API request for fetching a list of experiments.
-func GetExperimentList(pid string, in model.ListExperimentRequest, cred types.Credentials) (ExperimentListData, error) {
-	return utils.SendGraphQLRequest[ExperimentListData](
+func GetExperimentList(pid string, in model.ListExperimentRequest, cred types.Credentials) (ExperimentList, error) {
+	return utils.SendGraphQLRequest[ExperimentList](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
 		cred.Token,
 		ListExperimentQuery,
@@ -116,8 +116,8 @@ func GetExperimentList(pid string, in model.ListExperimentRequest, cred types.Cr
 }
 
 // GetExperimentRunsList sends GraphQL API request for fetching a list of experiment runs.
-func GetExperimentRunsList(pid string, in model.ListExperimentRunRequest, cred types.Credentials) (ExperimentRunListData, error) {
-	return utils.SendGraphQLRequest[ExperimentRunListData](
+func GetExperimentRunsList(pid string, in model.ListExperimentRunRequest, cred types.Credentials) (ExperimentRunsList, error) {
+	return utils.SendGraphQLRequest[ExperimentRunsList](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
 		cred.Token,
 		ListExperimentRunsQuery,
@@ -133,8 +133,8 @@ func GetExperimentRunsList(pid string, in model.ListExperimentRunRequest, cred t
 }
 
 // DeleteChaosExperiment sends GraphQL API request for deleting a given Chaos Experiment.
-func DeleteChaosExperiment(pid string, eid *string, cred types.Credentials) (DeleteChaosExperimentData, error) {
-	return utils.SendGraphQLRequest[DeleteChaosExperimentData](
+func DeleteChaosExperiment(pid string, eid *string, cred types.Credentials) (DeleteChaosExperimentDetails, error) {
+	return utils.SendGraphQLRequest[DeleteChaosExperimentDetails](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
 		cred.Token,
 		DeleteExperimentQuery,
@@ -151,8 +151,8 @@ func DeleteChaosExperiment(pid string, eid *string, cred types.Credentials) (Del
 }
 
 // GetExperimentRun sends GraphQL API request for getting a specific experiment run.
-func GetExperimentRun(pid string, runID string, cred types.Credentials) (ExperimentRunData, error) {
-	return utils.SendGraphQLRequest[ExperimentRunData](
+func GetExperimentRun(pid string, runID string, cred types.Credentials) (ExperimentRunDetails, error) {
+	return utils.SendGraphQLRequest[ExperimentRunDetails](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
 		cred.Token,
 		GetExperimentRunQuery,

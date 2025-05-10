@@ -5,25 +5,39 @@ const (
                       saveChaosExperiment(projectID: $projectID, request: $request)
                      }`
 
-	ListExperimentQuery = `query listExperiment($projectID: ID!, $request: ListExperimentRequest!) {
+                     ListExperimentQuery = `query listExperiment($projectID: ID!, $request: ListExperimentRequest!) {
                       listExperiment(projectID: $projectID, request: $request) {
                         totalNoOfExperiments
                         experiments {
                           experimentID
+                          experimentType
                           experimentManifest
                           cronSyntax
                           name
+                          description
+                          tags
+                          createdAt
+                          updatedAt
                           infra {
                             name
                             infraID
                           }
-                          updatedBy{
-                              username
-                              email
+                          createdBy {
+                            username
+                          }
+                          updatedBy {
+                            username
+                            email
+                          }
+                          recentExperimentRunDetails {
+                            experimentRunID
+                            phase
+                            resiliencyScore
+                            updatedAt
+                          }
                         }
                       }
-                    }
-	}`
+                    }`
 
 	ListExperimentRunsQuery = `query listExperimentRuns($projectID: ID!, $request: ListExperimentRunRequest!) {
                       listExperimentRun(projectID: $projectID, request: $request) {

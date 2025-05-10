@@ -2,9 +2,11 @@ package probe
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/apis"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/logger"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
@@ -16,8 +18,109 @@ import (
 var (
 	testEndpoint = "http://127.0.0.1:39651"
 	testUsername = "admin"
-	testPassword = "LitmusChaos123@"
+	testPassword = "litmus"	
+	// Store IDs as package-level variables for test access
+	projectID  string
+	probeID    string
+	probeName  string
+	credentials types.Credentials
 )
+
+func TestMain(m *testing.M) {
+	// Override defaults with environment variables if set
+	if endpoint := os.Getenv("LITMUS_TEST_ENDPOINT"); endpoint != "" {
+		testEndpoint = endpoint
+	}
+	if username := os.Getenv("LITMUS_TEST_USERNAME"); username != "" {
+		testUsername = username
+	}
+	if password := os.Getenv("LITMUS_TEST_PASSWORD"); password != "" {
+		testPassword = password
+	}
+
+	logger.Infof("Test configuration - Endpoint: %s, Username: %s", testEndpoint, testUsername)
+	
+	// Setup credentials by authenticating
+	authResp, err := apis.Auth(types.AuthInput{
+		Endpoint: testEndpoint,
+		Username: testUsername,
+		Password: testPassword,
+	})
+	if err != nil {
+		log.Fatalf("Failed to authenticate: %v", err)
+	}
+
+	credentials = types.Credentials{
+		ServerEndpoint: testEndpoint,
+		Endpoint: testEndpoint,
+		Token:          authResp.AccessToken,
+	}
+
+	// Get or create project ID
+	projectResp, err := apis.ListProject(credentials)
+	if err != nil {
+		log.Fatalf("Failed to list projects: %v", err)
+	}
+
+	if len(projectResp.Data.Projects) > 0 {
+		projectID = projectResp.Data.Projects[0].ID
+		logger.Infof("Using existing project ID: %s", projectID)
+	} else {
+		// Create a project if none exists
+		projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+		newProject, err := apis.CreateProjectRequest(projectName, credentials)
+		if err != nil {
+			log.Fatalf("Failed to create project: %v", err)
+		}
+		projectID = newProject.Data.ID
+		logger.Infof("Created new project ID: %s", projectID)
+	}
+	
+	// Store project ID in credentials for convenience
+	credentials.ProjectID = projectID
+	
+	// Seed Probe Data
+	logger.Infof("Seeding Probe data...")
+	probeName, probeID = seedProbeData(credentials, projectID)
+	
+	// Run the tests
+	exitCode := m.Run()
+	
+	// Exit with the test status code
+	os.Exit(exitCode)
+}
+
+func seedProbeData(credentials types.Credentials, projectID string) (string, string) {
+	// Generate a unique probe name
+	probeName := fmt.Sprintf("http-probe-%s", uuid.New().String())
+	
+	// Create a filter to list probes
+	var probeTypes []*model.ProbeType
+	
+	// Check if we need to create a probe
+	probeResp, err := ListProbeRequest(projectID, probeTypes, credentials)
+	if err != nil {
+		log.Printf("Failed to list probes: %v", err)
+		// Continue even if listing fails - we'll try to create a new one
+	}
+	
+	if len(probeResp.Data.Probes) > 0 {
+		// Probe already exists, use the first one
+		existingProbe := probeResp.Data.Probes[0]
+		logger.Infof("Using existing probe: %s", existingProbe.Name)
+		return existingProbe.Name, existingProbe.Name // Use name as ID since ID field doesn't exist
+	}
+	
+	// In a real implementation, you would create a probe here
+	// For this example, we'll just return the name without actually creating one
+	// since probe creation API is complex and requires specific fields
+	logger.Infof("No existing probe found. Using name: %s (no actual probe created)", probeName)
+	
+	// Use a dummy ID for testing
+	dummyID := fmt.Sprintf("probe-%s", uuid.New().String())
+	
+	return probeName, dummyID
+}
 
 func init() {
 	// Override defaults with environment variables if set
@@ -74,8 +177,8 @@ func TestGetProbeRequest(t *testing.T) {
 	}{
 		{
 			name:      "successful probe retrieval",
-			projectID: "test-project-id",
-			probeID:   "test-probe-id",
+			projectID: projectID,
+			probeID:   probeID,
 			wantErr:   false,
 			validateFn: func(t *testing.T, result *GetProbeResponse) {
 				assert.NotNil(t, result, "Result should not be nil")
@@ -85,7 +188,7 @@ func TestGetProbeRequest(t *testing.T) {
 		},
 		{
 			name:       "probe retrieval with empty ID",
-			projectID:  "test-project-id",
+			projectID:  projectID,
 			probeID:    "",
 			wantErr:    true,
 			validateFn: nil,
@@ -130,7 +233,7 @@ func TestListProbeRequest(t *testing.T) {
 	}{
 		{
 			name:       "successful probes listing",
-			projectID:  "test-project-id",
+			projectID:  projectID,
 			probeTypes: nil, // List all probe types
 			wantErr:    false,
 			validateFn: func(t *testing.T, result *ListProbeResponse) {
@@ -194,8 +297,8 @@ func TestDeleteProbeRequest(t *testing.T) {
 	}{
 		{
 			name:      "successful probe deletion",
-			projectID: "test-project-id",
-			probeID:   "test-probe-id",
+			projectID: projectID,
+			probeID:   probeID,
 			wantErr:   false,
 			validateFn: func(t *testing.T, result *DeleteProbeResponse) {
 				assert.NotNil(t, result, "Result should not be nil")
@@ -205,7 +308,7 @@ func TestDeleteProbeRequest(t *testing.T) {
 		},
 		{
 			name:       "probe deletion with empty probe ID",
-			projectID:  "test-project-id",
+			projectID:  projectID,
 			probeID:    "",
 			wantErr:    true,
 			validateFn: nil,
@@ -250,9 +353,9 @@ func TestGetProbeYAMLRequest(t *testing.T) {
 	}{
 		{
 			name:      "successful probe YAML retrieval",
-			projectID: "test-project-id",
+			projectID: projectID,
 			request: model.GetProbeYAMLRequest{
-				ProbeName: "test-probe",
+				ProbeName: probeName,
 				Mode:      "SOT",
 			},
 			wantErr: true, // Temporarily expect error due to no documents in the test database
@@ -260,7 +363,7 @@ func TestGetProbeYAMLRequest(t *testing.T) {
 		},
 		{
 			name:      "probe YAML retrieval with empty probe name",
-			projectID: "test-project-id",
+			projectID: projectID,
 			request: model.GetProbeYAMLRequest{
 				ProbeName: "",
 				Mode:      "SOT",

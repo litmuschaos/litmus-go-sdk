@@ -9,8 +9,8 @@ import (
 )
 
 // CreateEnvironment connects the Infra with the given details
-func CreateEnvironment(pid string, request models.CreateEnvironmentRequest, cred types.Credentials) (CreateEnvironmentResponse, error) {
-	return utils.SendGraphQLRequest[CreateEnvironmentResponse](
+func CreateEnvironment(pid string, request models.CreateEnvironmentRequest, cred types.Credentials) (CreateEnvironmentData, error) {
+	return utils.SendGraphQLRequest[CreateEnvironmentData](
 		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
 		cred.Token,
 		CreateEnvironmentQuery,

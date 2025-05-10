@@ -78,8 +78,8 @@ func ConnectInfra(infra types.Infra, cred types.Credentials) (InfraConnectionDat
 		},
 		"Error in registering Chaos Infrastructure",
 	)
-}
 
+}
 func CreateRegisterInfraRequest(infra types.Infra) models.RegisterInfraRequest {
 	return models.RegisterInfraRequest{
 		Name:               infra.InfraName,
