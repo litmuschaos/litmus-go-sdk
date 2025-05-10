@@ -399,3 +399,241 @@ func TestGetProbeYAMLRequest(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateProbe(t *testing.T) {
+	trueBool := true
+	desc := "Test probe description"
+
+	// Helper function to ensure probe cleanup
+	cleanupProbe := func(projectID, probeName string) {
+		if probeName != "" {
+			_, _ = DeleteProbeRequest(projectID, probeName, credentials)
+		}
+	}
+
+	tests := []struct {
+		name              string
+		projectID         string
+		probeReq          ProbeRequest
+		wantErr           bool
+		validateFnFactory func(req ProbeRequest) func(*testing.T, *Probe, error)
+	}{
+		{
+			name:      "Create HTTP Probe - Successful",
+			projectID: projectID,
+			probeReq: ProbeRequest{
+				Name:               fmt.Sprintf("test-http-probe-%s", uuid.New().String()),
+				Description:        &desc,
+				Type:               ProbeTypeHTTPProbe,
+				InfrastructureType: InfrastructureTypeKubernetes,
+				Tags:               []string{"test", "http"},
+				KubernetesHTTPProperties: &KubernetesHTTPProbeRequest{
+					ProbeTimeout: "30s",
+					Interval:     "10s",
+					Attempt:      intPtr(1),
+					URL:          "http://localhost:8080/health",
+					Method: &Method{
+						Get: &GetMethod{
+							ResponseCode: "200",
+							Criteria:     "==",
+						},
+					},
+					InsecureSkipVerify: &trueBool,
+				},
+			},
+			wantErr: false,
+			validateFnFactory: func(expectedReq ProbeRequest) func(*testing.T, *Probe, error) {
+				return func(t *testing.T, probe *Probe, err error) {
+					// Ensure cleanup happens regardless of test outcome
+					if expectedReq.Name != "" {
+						defer cleanupProbe(projectID, expectedReq.Name)
+					}
+
+					assert.NoError(t, err)
+					if err != nil {
+						t.Logf("Error creating probe: %v", err)
+						return
+					}
+					
+					assert.NotNil(t, probe)
+					if probe == nil {
+						t.Log("Probe is nil")
+						return
+					}
+					
+					assert.Equal(t, expectedReq.Name, probe.Name)
+					assert.Equal(t, ProbeTypeHTTPProbe, probe.Type)
+					assert.NotNil(t, probe.KubernetesHTTPProperties)
+					
+					if probe.KubernetesHTTPProperties != nil {
+						assert.Equal(t, "http://localhost:8080/health", probe.KubernetesHTTPProperties.URL)
+						assert.Equal(t, "30s", probe.KubernetesHTTPProperties.ProbeTimeout)
+						assert.Equal(t, "10s", probe.KubernetesHTTPProperties.Interval)
+						if probe.KubernetesHTTPProperties.InsecureSkipVerify != nil {
+							assert.Equal(t, trueBool, *probe.KubernetesHTTPProperties.InsecureSkipVerify)
+						}
+					}
+				}
+			},
+		},
+		{
+			name:      "Create CMD Probe - Successful",
+			projectID: projectID,
+			probeReq: ProbeRequest{
+				Name:               fmt.Sprintf("test-cmd-probe-%s", uuid.New().String()),
+				Type:               ProbeTypeCMDProbe,
+				InfrastructureType: InfrastructureTypeKubernetes,
+				KubernetesCMDProperties: &KubernetesCMDProbeRequest{
+					Command: "ls -l",
+					Comparator: &ComparatorInput{
+						Type:     "Contains",
+						Criteria: "==",
+						Value:    "test",
+					},
+					ProbeTimeout: "30s",
+					Interval:     "10s",
+					Attempt:      intPtr(1),
+				},
+			},
+			wantErr: false,
+			validateFnFactory: func(expectedReq ProbeRequest) func(*testing.T, *Probe, error) {
+				return func(t *testing.T, probe *Probe, err error) {
+					// Ensure cleanup happens regardless of test outcome
+					if expectedReq.Name != "" {
+						defer cleanupProbe(projectID, expectedReq.Name)
+					}
+
+					assert.NoError(t, err)
+					assert.NotNil(t, probe)
+					if probe == nil {
+						return // Avoid nil pointer dereference
+					}
+					assert.Equal(t, expectedReq.Name, probe.Name)
+					assert.Equal(t, ProbeTypeCMDProbe, probe.Type)
+					assert.NotNil(t, probe.KubernetesCMDProperties)
+					if probe.KubernetesCMDProperties != nil {
+						assert.Equal(t, "ls -l", probe.KubernetesCMDProperties.Command)
+						assert.Equal(t, "30s", probe.KubernetesCMDProperties.ProbeTimeout)
+						assert.Equal(t, "10s", probe.KubernetesCMDProperties.Interval)
+						if probe.KubernetesCMDProperties.Comparator != nil {
+							assert.Equal(t, "Contains", probe.KubernetesCMDProperties.Comparator.Type)
+							assert.Equal(t, "==", probe.KubernetesCMDProperties.Comparator.Criteria)
+						}
+					}
+				}
+			},
+		},
+		{
+			name:      "Validation Error - Mismatched Type and Properties",
+			projectID: projectID,
+			probeReq: ProbeRequest{
+				Name:               "test-mismatch-probe",
+				Type:               ProbeTypeHTTPProbe,
+				InfrastructureType: InfrastructureTypeKubernetes,
+				KubernetesCMDProperties: &KubernetesCMDProbeRequest{
+					Command:      "echo hello",
+					ProbeTimeout: "5s",
+					Interval:     "5s",
+				},
+			},
+			wantErr: true,
+			validateFnFactory: func(expectedReq ProbeRequest) func(*testing.T, *Probe, error) {
+				return func(t *testing.T, probe *Probe, err error) {
+					// Ensure cleanup happens regardless of test outcome
+					if expectedReq.Name != "" {
+						defer cleanupProbe(projectID, expectedReq.Name)
+					}
+
+					assert.Error(t, err)
+					assert.Nil(t, probe)
+					assert.Contains(t, err.Error(), "httpProbe type requires kubernetesHTTPProperties")
+				}
+			},
+		},
+		{
+			name:      "Validation Error - No Properties",
+			projectID: projectID,
+			probeReq: ProbeRequest{
+				Name:               "test-no-props-probe",
+				Type:               ProbeTypeHTTPProbe,
+				InfrastructureType: InfrastructureTypeKubernetes,
+			},
+			wantErr: true,
+			validateFnFactory: func(expectedReq ProbeRequest) func(*testing.T, *Probe, error) {
+				return func(t *testing.T, probe *Probe, err error) {
+					// Ensure cleanup happens regardless of test outcome
+					if expectedReq.Name != "" {
+						defer cleanupProbe(projectID, expectedReq.Name)
+					}
+
+					assert.Error(t, err)
+					assert.Nil(t, probe)
+					assert.Contains(t, err.Error(), "no probe properties provided")
+				}
+			},
+		},
+		{
+			name:      "Validation Error - Multiple Properties",
+			projectID: projectID,
+			probeReq: ProbeRequest{
+				Name:               "test-multi-props-probe",
+				Type:               ProbeTypeHTTPProbe,
+				InfrastructureType: InfrastructureTypeKubernetes,
+				KubernetesHTTPProperties: &KubernetesHTTPProbeRequest{
+					URL:          "http://example.com",
+					ProbeTimeout: "5s",
+					Interval:     "5s",
+					Attempt:      intPtr(1),
+					Method:       &Method{Get: &GetMethod{ResponseCode: "200", Criteria: "=="}},
+				},
+				KubernetesCMDProperties: &KubernetesCMDProbeRequest{
+					Command:      "echo hello",
+					ProbeTimeout: "5s",
+					Interval:     "5s",
+					Attempt:      intPtr(1),
+				},
+			},
+			wantErr: true,
+			validateFnFactory: func(expectedReq ProbeRequest) func(*testing.T, *Probe, error) {
+				return func(t *testing.T, probe *Probe, err error) {
+					// Ensure cleanup happens regardless of test outcome
+					if expectedReq.Name != "" {
+						defer cleanupProbe(projectID, expectedReq.Name)
+					}
+
+					assert.Error(t, err)
+					assert.Nil(t, probe)
+					assert.Contains(t, err.Error(), "multiple probe property types provided")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		cleanupProbe(projectID, tt.probeReq.Name)
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			currentTestProbeRequest := tt.probeReq
+
+			probe, err := CreateProbe(currentTestProbeRequest, tt.projectID, credentials)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			if tt.validateFnFactory != nil {
+				validator := tt.validateFnFactory(currentTestProbeRequest)
+				validator(t, probe, err)
+			}
+		})
+	}
+}
+
+// Helper function to get a pointer to an int
+func intPtr(i int) *int {
+	return &i
+}
