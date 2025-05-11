@@ -71,13 +71,13 @@ func (c *experimentClient) List(request models.ListExperimentRequest) (models.Li
 }
 
 // Create creates a new experiment
-func (c *experimentClient) Create(name string, experimentConfig models.SaveChaosExperimentRequest) (string, error) {
+func (c *experimentClient) Create(name string, experimentConfig models.SaveChaosExperimentRequest) (experiment.RunExperimentData, error) {
 	if c.credentials.Endpoint == "" {
-		return "", fmt.Errorf("endpoint not set in credentials")
+		return experiment.RunExperimentData{}, fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
-		return "", fmt.Errorf("project ID not set in credentials")
+		return experiment.RunExperimentData{}, fmt.Errorf("project ID not set in credentials")
 	}
 
 	// Use the provided config directly
@@ -94,12 +94,12 @@ func (c *experimentClient) Create(name string, experimentConfig models.SaveChaos
 	}
 
 	// Save the experiment
-	saveResp, err := experiment.SaveExperiment(c.credentials.ProjectID, request, c.credentials)
+	saveResp, err := experiment.CreateExperiment(c.credentials.ProjectID, request, c.credentials)
 	if err != nil {
-		return "", fmt.Errorf("failed to create experiment: %w", err)
+		return experiment.RunExperimentData{}, fmt.Errorf("failed to create experiment: %w", err)
 	}
 
-	return saveResp.Message, nil
+	return saveResp, nil
 }
 
 // Delete removes an experiment
