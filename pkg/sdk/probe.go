@@ -38,7 +38,7 @@ type ProbeClient interface {
 	Get(projectID string, id string) (models.Probe, error)
 
 	// GetProbeYAML retrieves the YAML configuration for a probe
-	GetProbeYAML(projectID string, id string, params map[string]string) (string, error)
+	GetProbeYAML(projectID string, id string, request models.GetProbeYAMLRequest) (string, error)
 }
 
 // probeClient implements the ProbeClient interface
@@ -135,7 +135,7 @@ func (c *probeClient) Get(projectID string, id string) (models.Probe, error) {
 }
 
 // GetProbeYAML retrieves the YAML configuration for a probe
-func (c *probeClient) GetProbeYAML(projectID string, id string, params map[string]string) (string, error) {
+func (c *probeClient) GetProbeYAML(projectID string, id string, request models.GetProbeYAMLRequest) (string, error) {
 	if c.credentials.Endpoint == "" {
 		return "", fmt.Errorf("endpoint not set in credentials")
 	}
@@ -148,10 +148,9 @@ func (c *probeClient) GetProbeYAML(projectID string, id string, params map[strin
 		return "", fmt.Errorf("probe ID cannot be empty")
 	}
 
-	// Create a request to get probe YAML
-	request := models.GetProbeYAMLRequest{
-		ProbeName: id,
-		Mode: models.Mode(params["mode"]),
+	// Ensure probe name is set
+	if request.ProbeName == "" {
+		request.ProbeName = id
 	}
 
 	response, err := probe.GetProbeYAMLRequest(projectID, request, c.credentials)

@@ -29,7 +29,7 @@ type InfrastructureClient interface {
 	List() (models.ListInfraResponse, error)
 
 	// Create creates a new infrastructure resource
-	Create(name string, config map[string]interface{}) (string, error)
+	Create(name string, infraConfig types.Infra) (string, error)
 
 	// Delete removes an infrastructure resource
 	Delete(id string) error
@@ -67,7 +67,7 @@ func (c *infrastructureClient) List() (models.ListInfraResponse, error) {
 }
 
 // Create creates a new infrastructure resource
-func (c *infrastructureClient) Create(name string, config map[string]interface{}) (string, error) {
+func (c *infrastructureClient) Create(name string, infraConfig types.Infra) (string, error) {
 	if c.credentials.Endpoint == "" {
 		return "", fmt.Errorf("endpoint not set in credentials")
 	}
@@ -76,36 +76,20 @@ func (c *infrastructureClient) Create(name string, config map[string]interface{}
 		return "", fmt.Errorf("project ID not set in credentials")
 	}
 
-	// Extract values from config or use defaults
-	var (
-		description    = getStringFromConfig(config, "description", fmt.Sprintf("Infrastructure created via Litmus SDK: %s", name))
-		platformName   = getStringFromConfig(config, "platformName", "default-platform")
-		environmentID  = getStringFromConfig(config, "environmentID", "")
-		namespace      = getStringFromConfig(config, "namespace", "litmus")
-		serviceAccount = getStringFromConfig(config, "serviceAccount", "litmus")
-		nsExists       = getBoolFromConfig(config, "nsExists", false)
-		saExists       = getBoolFromConfig(config, "saExists", false)
-		skipSSL        = getBoolFromConfig(config, "skipSSL", false)
-		nodeSelector   = getStringFromConfig(config, "nodeSelector", "")
-		tolerations    = getStringFromConfig(config, "tolerations", "")
-		mode           = getStringFromConfig(config, "mode", string(models.InfraScopeNamespace))
-	)
-
-	// Create infrastructure request
-	infra := types.Infra{
-		ProjectID:      c.credentials.ProjectID,
-		InfraName:      name,
-		Description:    description,
-		PlatformName:   platformName,
-		EnvironmentID:  environmentID,
-		Namespace:      namespace,
-		ServiceAccount: serviceAccount,
-		NsExists:       nsExists,
-		SAExists:       saExists,
-		SkipSSL:        skipSSL,
-		NodeSelector:   nodeSelector,
-		Tolerations:    tolerations,
-		Mode:           models.InfraScope(mode).String(),
+	// Use the provided config directly
+	infra := infraConfig
+	
+	// Ensure required fields are set
+	infra.ProjectID = c.credentials.ProjectID
+	
+	// Set name if not already set
+	if infra.InfraName == "" {
+		infra.InfraName = name
+	}
+	
+	// Set default description if not provided
+	if infra.Description == "" {
+		infra.Description = fmt.Sprintf("Infrastructure created via Litmus SDK: %s", name)
 	}
 
 	response, err := infrastructure.ConnectInfra(infra, c.credentials)
@@ -171,23 +155,4 @@ func (c *infrastructureClient) Disconnect(id string)  error {
 	}
 
 	return nil
-}
-
-// Helper functions for config extraction
-func getStringFromConfig(config map[string]interface{}, key, defaultValue string) string {
-	if val, ok := config[key]; ok {
-		if strVal, ok := val.(string); ok {
-			return strVal
-		}
-	}
-	return defaultValue
-}
-
-func getBoolFromConfig(config map[string]interface{}, key string, defaultValue bool) bool {
-	if val, ok := config[key]; ok {
-		if boolVal, ok := val.(bool); ok {
-			return boolVal
-		}
-	}
-	return defaultValue
 }

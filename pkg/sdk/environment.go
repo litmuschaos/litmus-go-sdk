@@ -29,7 +29,7 @@ type EnvironmentClient interface {
 	List() (models.ListEnvironmentResponse, error)
 
 	// Create creates a new environment
-	Create(name string, config map[string]interface{}) (models.Environment, error)
+	Create(name string, request models.CreateEnvironmentRequest) (models.Environment, error)
 
 	// Delete removes an environment
 	Delete(id string) error
@@ -58,7 +58,7 @@ func (c *environmentClient) List() (models.ListEnvironmentResponse, error) {
 }
 
 // Create creates a new environment
-func (c *environmentClient) Create(name string, config map[string]interface{}) (models.Environment, error) {
+func (c *environmentClient) Create(name string, request models.CreateEnvironmentRequest) (models.Environment, error) {
 	if c.credentials.Endpoint == "" {
 		return models.Environment{}, fmt.Errorf("endpoint not set in credentials")
 	}
@@ -67,12 +67,14 @@ func (c *environmentClient) Create(name string, config map[string]interface{}) (
 		return models.Environment{}, fmt.Errorf("project ID not set in credentials")
 	}
 
-	// Prepare the environment request
-	request := models.CreateEnvironmentRequest{
-		Name:          name,
-		Type:          models.EnvironmentType(config["type"].(string)),
-		Tags:          []string{"litmus-sdk"},
-		EnvironmentID: config["environmentID"].(string),
+	// Set name if not already set
+	if request.Name == "" {
+		request.Name = name
+	}
+	
+	// Set default tags if not provided
+	if len(request.Tags) == 0 {
+		request.Tags = []string{"litmus-sdk"}
 	}
 
 	response, err := environment.CreateEnvironment(c.credentials.ProjectID, request, c.credentials)

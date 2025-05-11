@@ -29,13 +29,13 @@ type ExperimentClient interface {
 	List(models.ListExperimentRequest) (models.ListExperimentResponse, error)
 
 	// Create creates a new experiment
-	Create(name string, config map[string]interface{}) (string, error)
+	Create(name string, experimentConfig models.SaveChaosExperimentRequest) (string, error)
 
 	// Delete removes an experiment
 	Delete(id string) error
 
 	// Update updates an experiment
-	Update(id string, config map[string]interface{}) (string, error)
+	Update(id string, experimentConfig models.SaveChaosExperimentRequest) (string, error)
 
 	// Get retrieves experiment details
 	Get(id string) (models.ExperimentRun, error)
@@ -71,7 +71,7 @@ func (c *experimentClient) List(request models.ListExperimentRequest) (models.Li
 }
 
 // Create creates a new experiment
-func (c *experimentClient) Create(name string, config map[string]interface{}) (string, error) {
+func (c *experimentClient) Create(name string, experimentConfig models.SaveChaosExperimentRequest) (string, error) {
 	if c.credentials.Endpoint == "" {
 		return "", fmt.Errorf("endpoint not set in credentials")
 	}
@@ -80,13 +80,20 @@ func (c *experimentClient) Create(name string, config map[string]interface{}) (s
 		return "", fmt.Errorf("project ID not set in credentials")
 	}
 
-	// Build the request with basic details
-	request := models.SaveChaosExperimentRequest{
-		Name:        name,
-		Description: fmt.Sprintf("Experiment created via Litmus SDK: %s", name),
+	// Use the provided config directly
+	request := experimentConfig
+	
+	// Set the name if not already set in the config
+	if request.Name == "" {
+		request.Name = name
+	}
+	
+	// Add a description if not present
+	if request.Description == "" {
+		request.Description = fmt.Sprintf("Experiment created via Litmus SDK: %s", name)
 	}
 
-	// Save the experiment first
+	// Save the experiment
 	saveResp, err := experiment.SaveExperiment(c.credentials.ProjectID, request, c.credentials)
 	if err != nil {
 		return "", fmt.Errorf("failed to create experiment: %w", err)
@@ -122,7 +129,7 @@ func (c *experimentClient) Delete(id string) error {
 }
 
 // Update updates an experiment
-func (c *experimentClient) Update(id string, config map[string]interface{}) (string, error) {
+func (c *experimentClient) Update(id string, experimentConfig models.SaveChaosExperimentRequest) (string, error) {
 	if c.credentials.Endpoint == "" {
 		return "", fmt.Errorf("endpoint not set in credentials")
 	}
@@ -135,11 +142,11 @@ func (c *experimentClient) Update(id string, config map[string]interface{}) (str
 		return "", fmt.Errorf("experiment ID cannot be empty")
 	}
 
-	// Build the request with updated details
-	request := models.SaveChaosExperimentRequest{
-		ID: id,
-	}
+	// Use the provided config directly
+	request := experimentConfig
 	
+	// Ensure ID is set
+	request.ID = id
 
 	saveResp, err := experiment.SaveExperiment(c.credentials.ProjectID, request, c.credentials)
 	if err != nil {

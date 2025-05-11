@@ -5,7 +5,8 @@ import (
 
 	"github.com/litmuschaos/litmus-go-sdk/pkg/logger"
 	"github.com/litmuschaos/litmus-go-sdk/pkg/sdk"
-	"github.com/litmuschaos/litmus/chaoscenter/graphql/server/graph/model"
+	"github.com/litmuschaos/litmus-go-sdk/pkg/types"
+	models "github.com/litmuschaos/litmus/chaoscenter/graphql/server/graph/model"
 )
 
 func CompleteSDKExample() {
@@ -52,11 +53,12 @@ func CompleteSDKExample() {
 	})
 
 	// Create environment
-	envConfig := map[string]interface{}{
-		"namespace": "litmus",
-		"type":      "kubernetes",
+	envRequest := models.CreateEnvironmentRequest{
+		Name: "production",
+		Type: "kubernetes",
+		Tags: []string{"production", "litmus-sdk-example"},
 	}
-	newEnv, err := client.Environments().Create("production", envConfig)
+	newEnv, err := client.Environments().Create("production", envRequest)
 	if err != nil {
 		logger.Fatalf("Failed to create environment: %v", err)
 	}
@@ -67,7 +69,7 @@ func CompleteSDKExample() {
 	// ======== Experiment Operations ========
 
 	// List experiments
-	experiments, err := client.Experiments().List(model.ListExperimentRequest{})
+	experiments, err := client.Experiments().List(models.ListExperimentRequest{})
 	if err != nil {
 		logger.Fatalf("Failed to list experiments: %v", err)
 	}
@@ -76,13 +78,12 @@ func CompleteSDKExample() {
 	})
 
 	// Create experiment
-	expConfig := map[string]interface{}{
-		"type":      "pod-delete",
-		"target":    "deployment/nginx",
-		"namespace": "default",
-		"duration":  30,
+	expRequest := models.SaveChaosExperimentRequest{
+		Name:        "nginx-availability-test",
+		Description: "Test nginx pod availability under failure conditions",
+		Tags:        []string{"availability", "nginx"},
 	}
-	newExp, err := client.Experiments().Create("nginx-availability-test", expConfig)
+	newExp, err := client.Experiments().Create("nginx-availability-test", expRequest)
 	if err != nil {
 		logger.Fatalf("Failed to create experiment: %v", err)
 	}
@@ -111,10 +112,15 @@ func CompleteSDKExample() {
 	})
 
 	// Create infrastructure
-	infraConfig := map[string]interface{}{
-		"type":     "kubernetes",
-		"provider": "gcp",
-		"region":   "us-central1",
+	infraConfig := types.Infra{
+		InfraName:      "gcp-cluster",
+		Description:    "GCP Kubernetes cluster",
+		PlatformName:   "gcp",
+		Namespace:      "litmus",
+		ServiceAccount: "litmus-admin",
+		NsExists:       true,
+		SAExists:       true,
+		Mode:           "namespace",
 	}
 	newInfra, err := client.Infrastructure().Create("gcp-cluster", infraConfig)
 	if err != nil {
@@ -133,6 +139,19 @@ func CompleteSDKExample() {
 	}
 	logger.InfoWithValues("Probes", map[string]interface{}{
 		"probes": probes,
+	})
+	
+	// Get probe YAML
+	yamlRequest := models.GetProbeYAMLRequest{
+		ProbeName: "my-probe-name",
+		Mode: "SOT",
+	}
+	probeYAML, err := client.Probes().GetProbeYAML("project-id", "probe-id", yamlRequest)
+	if err != nil {
+		logger.Fatalf("Failed to get probe YAML: %v", err)
+	}
+	logger.InfoWithValues("Probe YAML", map[string]interface{}{
+		"yaml": probeYAML,
 	})
 
 }
