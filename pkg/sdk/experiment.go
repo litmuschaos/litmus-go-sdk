@@ -29,7 +29,7 @@ type ExperimentClient interface {
 	List(models.ListExperimentRequest) (models.ListExperimentResponse, error)
 
 	// Create creates a new experiment
-	Create(name string, experimentConfig models.SaveChaosExperimentRequest) (string, error)
+	Create(name string, experimentConfig models.SaveChaosExperimentRequest) (experiment.RunExperimentData, error)
 
 	// Delete removes an experiment
 	Delete(id string) error
