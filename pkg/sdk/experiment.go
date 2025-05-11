@@ -45,6 +45,9 @@ type ExperimentClient interface {
 
 	// GetRunPhase retrieves just the status/phase of a specific experiment run
 	GetRunPhase(runID string) (string, error)
+
+	// ListRuns retrieves all experiment runs
+	ListRuns(request models.ListExperimentRunRequest) (models.ListExperimentRunResponse, error)
 }
 
 // experimentClient implements the ExperimentClient interface
@@ -69,6 +72,27 @@ func (c *experimentClient) List(request models.ListExperimentRequest) (models.Li
 
 	return response.ListExperimentDetails, nil
 }
+
+
+// ListRuns retrieves all experiment runs
+func (c *experimentClient) ListRuns(request models.ListExperimentRunRequest) (models.ListExperimentRunResponse, error) {
+	if c.credentials.Endpoint == "" {
+		return models.ListExperimentRunResponse{}, fmt.Errorf("endpoint not set in credentials")
+	}
+
+	if c.credentials.ProjectID == "" {
+		return models.ListExperimentRunResponse{}, fmt.Errorf("project ID not set in credentials")
+	}
+
+	response, err := experiment.GetExperimentRunsList(c.credentials.ProjectID, request, c.credentials)
+	if err != nil {
+		return models.ListExperimentRunResponse{}, fmt.Errorf("failed to list experiment runs: %w", err)
+	}
+
+	return response.ListExperimentRunDetails, nil
+}
+
+
 
 // Create creates a new experiment
 func (c *experimentClient) Create(name string, experimentConfig models.SaveChaosExperimentRequest) (experiment.RunExperimentData, error) {
