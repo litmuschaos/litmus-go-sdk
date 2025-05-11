@@ -48,6 +48,7 @@ type ClientOptions struct {
 	Endpoint string
 	Username string
 	Password string
+	ProjectID string
 }
 
 // LitmusClient implements the Client interface
@@ -76,6 +77,7 @@ func NewClient(options ClientOptions) (Client, error) {
 		Endpoint: options.Endpoint,
 		Token:    authResp.AccessToken,
 		Username: options.Username,
+		ProjectID: options.ProjectID,
 	}
 
 	client := &LitmusClient{
