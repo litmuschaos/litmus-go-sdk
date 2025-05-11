@@ -45,8 +45,8 @@ type probeClient struct {
 
 // List retrieves all probes
 func (c *probeClient) List(projectID string) ([]models.Probe, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return nil, fmt.Errorf("endpoint not set in credentials")
 	}
 
 	if projectID == "" {
@@ -67,8 +67,8 @@ func (c *probeClient) List(projectID string) ([]models.Probe, error) {
 
 // Delete removes a probe
 func (c *probeClient) Delete(projectID string, id string) error {
-	if c.credentials.ServerEndpoint == "" {
-		return fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return fmt.Errorf("endpoint not set in credentials")
 	}
 
 	if projectID == "" {
@@ -94,8 +94,8 @@ func (c *probeClient) Delete(projectID string, id string) error {
 
 // Get retrieves probe details
 func (c *probeClient) Get(projectID string, id string) (models.Probe, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return models.Probe{}, fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return models.Probe{}, fmt.Errorf("endpoint not set in credentials")
 	}
 
 	if projectID == "" {
@@ -116,8 +116,8 @@ func (c *probeClient) Get(projectID string, id string) (models.Probe, error) {
 
 // GetProbeYAML retrieves the YAML configuration for a probe
 func (c *probeClient) GetProbeYAML(projectID string, id string, params map[string]string) (string, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return "", fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return "", fmt.Errorf("endpoint not set in credentials")
 	}
 
 	if projectID == "" {

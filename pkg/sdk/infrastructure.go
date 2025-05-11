@@ -48,8 +48,8 @@ type infrastructureClient struct {
 
 // List retrieves all infrastructure resources
 func (c *infrastructureClient) List() (models.ListInfraResponse, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return models.ListInfraResponse{}, fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return models.ListInfraResponse{}, fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
@@ -68,8 +68,8 @@ func (c *infrastructureClient) List() (models.ListInfraResponse, error) {
 
 // Create creates a new infrastructure resource
 func (c *infrastructureClient) Create(name string, config map[string]interface{}) (string, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return "", fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return "", fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
@@ -123,8 +123,8 @@ func (c *infrastructureClient) Delete(id string)  error {
 
 // Get retrieves infrastructure details
 func (c *infrastructureClient) Get(id string) (*models.Infra, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return nil, fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
@@ -153,8 +153,8 @@ func (c *infrastructureClient) Get(id string) (*models.Infra, error) {
 
 // Disconnect terminates a connection to an infrastructure
 func (c *infrastructureClient) Disconnect(id string)  error {
-	if c.credentials.ServerEndpoint == "" {
-		return fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {

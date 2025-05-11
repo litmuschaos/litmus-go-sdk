@@ -15,7 +15,7 @@ func GetProbeRequest(pid string, probeName string, cred types.Credentials) (GetP
 		return GetProbeResponse{}, fmt.Errorf("probe name cannot be empty")
 	}
 	return utils.SendGraphQLRequest[GetProbeResponse](
-		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		fmt.Sprintf("%s%s", cred.Endpoint, utils.GQLAPIPath),
 		cred.Token,
 		GetProbeQuery,
 		struct {
@@ -34,7 +34,7 @@ func ListProbeRequest(pid string, probeTypes []*models.ProbeType, cred types.Cre
 		return ListProbeResponse{}, fmt.Errorf("projectID cannot be empty")
 	}
 	return utils.SendGraphQLRequest[ListProbeResponse](
-		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		fmt.Sprintf("%s%s", cred.Endpoint, utils.GQLAPIPath),
 		cred.Token,
 		ListProbeQuery,
 		struct {
@@ -55,7 +55,7 @@ func DeleteProbeRequest(pid string, probeName string, cred types.Credentials) (D
 		return DeleteProbeResponse{}, fmt.Errorf("probe name cannot be empty")
 	}
 	return utils.SendGraphQLRequest[DeleteProbeResponse](
-		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		fmt.Sprintf("%s%s", cred.Endpoint, utils.GQLAPIPath),
 		cred.Token,
 		DeleteProbeQuery,
 		struct {
@@ -71,7 +71,7 @@ func DeleteProbeRequest(pid string, probeName string, cred types.Credentials) (D
 
 func GetProbeYAMLRequest(pid string, request models.GetProbeYAMLRequest, cred types.Credentials) (GetProbeYAMLResponse, error) {
 	return utils.SendGraphQLRequest[GetProbeYAMLResponse](
-		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		fmt.Sprintf("%s%s", cred.Endpoint, utils.GQLAPIPath),
 		cred.Token,
 		GetProbeYAMLQuery,
 		struct {
@@ -94,7 +94,7 @@ func CreateProbe(request ProbeRequest, projectID string, cred types.Credentials)
 	query := createProbeMutation
 
 	rawResponse, err := utils.SendGraphQLRequest[map[string]interface{}](
-		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		fmt.Sprintf("%s%s", cred.Endpoint, utils.GQLAPIPath),
 		cred.Token,
 		query,
 		struct {

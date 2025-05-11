@@ -11,7 +11,7 @@ import (
 // CreateEnvironment connects the Infra with the given details
 func CreateEnvironment(pid string, request models.CreateEnvironmentRequest, cred types.Credentials) (CreateEnvironmentData, error) {
 	return utils.SendGraphQLRequest[CreateEnvironmentData](
-		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		fmt.Sprintf("%s%s", cred.Endpoint, utils.GQLAPIPath),
 		cred.Token,
 		CreateEnvironmentQuery,
 		struct {
@@ -31,7 +31,7 @@ func ListChaosEnvironments(pid string, cred types.Credentials) (ListEnvironmentD
 	}
 	
 	return utils.SendGraphQLRequest[ListEnvironmentData](
-		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		fmt.Sprintf("%s%s", cred.Endpoint, utils.GQLAPIPath),
 		cred.Token,
 		ListEnvironmentQuery,
 		struct {
@@ -47,7 +47,7 @@ func ListChaosEnvironments(pid string, cred types.Credentials) (ListEnvironmentD
 
 func GetChaosEnvironment(pid string, envid string, cred types.Credentials) (GetEnvironmentData, error) {
 	return utils.SendGraphQLRequest[GetEnvironmentData](
-		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		fmt.Sprintf("%s%s", cred.Endpoint, utils.GQLAPIPath),
 		cred.Token,
 		GetEnvironmentQuery,
 		struct {
@@ -63,7 +63,7 @@ func GetChaosEnvironment(pid string, envid string, cred types.Credentials) (GetE
 
 func DeleteEnvironment(pid string, envid string, cred types.Credentials) (DeleteChaosEnvironmentData, error) {
 	return utils.SendGraphQLRequest[DeleteChaosEnvironmentData](
-		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		fmt.Sprintf("%s%s", cred.Endpoint, utils.GQLAPIPath),
 		cred.Token,
 		DeleteEnvironmentQuery,
 		struct {

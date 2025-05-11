@@ -51,7 +51,6 @@ func TestMain(m *testing.M) {
 	}
 
 	credentials = types.Credentials{
-		ServerEndpoint: testEndpoint,
 		Endpoint: testEndpoint,
 		Token:          authResp.AccessToken,
 	}
@@ -156,7 +155,7 @@ func NewLitmusClient(endpoint, username, password string) (*LitmusClient, error)
 
 	return &LitmusClient{
 		credentials: types.Credentials{
-			ServerEndpoint: endpoint,
+			Endpoint:       endpoint,
 			Token:          authResp.AccessToken,
 		},
 	}, nil

@@ -54,8 +54,8 @@ type experimentClient struct {
 
 // List retrieves all experiments
 func (c *experimentClient) List(request models.ListExperimentRequest) (models.ListExperimentResponse, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return models.ListExperimentResponse{}, fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return models.ListExperimentResponse{}, fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
@@ -72,8 +72,8 @@ func (c *experimentClient) List(request models.ListExperimentRequest) (models.Li
 
 // Create creates a new experiment
 func (c *experimentClient) Create(name string, config map[string]interface{}) (string, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return "", fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return "", fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
@@ -97,8 +97,8 @@ func (c *experimentClient) Create(name string, config map[string]interface{}) (s
 
 // Delete removes an experiment
 func (c *experimentClient) Delete(id string) error {
-	if c.credentials.ServerEndpoint == "" {
-		return fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
@@ -123,8 +123,8 @@ func (c *experimentClient) Delete(id string) error {
 
 // Update updates an experiment
 func (c *experimentClient) Update(id string, config map[string]interface{}) (string, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return "", fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return "", fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
@@ -150,8 +150,8 @@ func (c *experimentClient) Update(id string, config map[string]interface{}) (str
 }
 
 func (c *experimentClient) Get(runID string) (models.ExperimentRun, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return models.ExperimentRun{}, fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return models.ExperimentRun{}, fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
@@ -173,8 +173,8 @@ func (c *experimentClient) Get(runID string) (models.ExperimentRun, error) {
 
 // Run starts an experiment
 func (c *experimentClient) Run(id string) (string, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return "", fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return "", fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {

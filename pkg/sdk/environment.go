@@ -45,8 +45,8 @@ type environmentClient struct {
 
 // List retrieves all environments
 func (c *environmentClient) List() (models.ListEnvironmentResponse, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return models.ListEnvironmentResponse{}, fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return models.ListEnvironmentResponse{}, fmt.Errorf("endpoint not set in credentials")
 	}
 
 	response, err := environment.ListChaosEnvironments(c.credentials.ProjectID, c.credentials)
@@ -59,8 +59,8 @@ func (c *environmentClient) List() (models.ListEnvironmentResponse, error) {
 
 // Create creates a new environment
 func (c *environmentClient) Create(name string, config map[string]interface{}) (models.Environment, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return models.Environment{}, fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return models.Environment{}, fmt.Errorf("endpoint not set in credentials")
 	}
 
 	if c.credentials.ProjectID == "" {
@@ -85,8 +85,8 @@ func (c *environmentClient) Create(name string, config map[string]interface{}) (
 
 // Delete removes an environment
 func (c *environmentClient) Delete(id string) error {
-	if c.credentials.ServerEndpoint == "" {
-		return fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return fmt.Errorf("endpoint not set in credentials")
 	}
 
 	if c.credentials.ProjectID == "" {
@@ -107,8 +107,8 @@ func (c *environmentClient) Delete(id string) error {
 
 // Get retrieves environment details
 func (c *environmentClient) Get(id string) (models.Environment, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return models.Environment{}, fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return models.Environment{}, fmt.Errorf("endpoint not set in credentials")
 	}
 
 	if c.credentials.ProjectID == "" {

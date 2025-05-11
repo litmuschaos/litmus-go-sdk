@@ -32,14 +32,12 @@ type AuthInput struct {
 	Endpoint       string
 	Username       string
 	Password       string
-	ServerEndpoint string
 }
 
 type Credentials struct {
 	Username       string
 	Token          string
 	Endpoint       string
-	ServerEndpoint string
 	ProjectID      string
 }
 
