@@ -52,8 +52,11 @@ const (
 			evaluationTimeout
 			stopOnFailure
 			command
-			comparator
-			match
+			comparator {
+				type
+				criteria
+				value
+			}
 			source
 		  }
 		  k8sProperties {

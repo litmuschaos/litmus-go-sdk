@@ -19,10 +19,9 @@ var (
 	testEndpoint = "http://127.0.0.1:39651"
 	testUsername = "admin"
 	testPassword = "litmus"	
-	// Store IDs as package-level variables for test access
 	projectID  string
-	probeID    string
-	probeName  string
+	testProbeID   string
+	testProbeName string
 	credentials types.Credentials
 )
 
@@ -78,47 +77,11 @@ func TestMain(m *testing.M) {
 	// Store project ID in credentials for convenience
 	credentials.ProjectID = projectID
 	
-	// Seed Probe Data
-	logger.Infof("Seeding Probe data...")
-	probeName, probeID = seedProbeData(credentials, projectID)
-	
 	// Run the tests
 	exitCode := m.Run()
 	
 	// Exit with the test status code
 	os.Exit(exitCode)
-}
-
-func seedProbeData(credentials types.Credentials, projectID string) (string, string) {
-	// Generate a unique probe name
-	probeName := fmt.Sprintf("http-probe-%s", uuid.New().String())
-	
-	// Create a filter to list probes
-	var probeTypes []*model.ProbeType
-	
-	// Check if we need to create a probe
-	probeResp, err := ListProbeRequest(projectID, probeTypes, credentials)
-	if err != nil {
-		log.Printf("Failed to list probes: %v", err)
-		// Continue even if listing fails - we'll try to create a new one
-	}
-	
-	if len(probeResp.Data.Probes) > 0 {
-		// Probe already exists, use the first one
-		existingProbe := probeResp.Data.Probes[0]
-		logger.Infof("Using existing probe: %s", existingProbe.Name)
-		return existingProbe.Name, existingProbe.Name // Use name as ID since ID field doesn't exist
-	}
-	
-	// In a real implementation, you would create a probe here
-	// For this example, we'll just return the name without actually creating one
-	// since probe creation API is complex and requires specific fields
-	logger.Infof("No existing probe found. Using name: %s (no actual probe created)", probeName)
-	
-	// Use a dummy ID for testing
-	dummyID := fmt.Sprintf("probe-%s", uuid.New().String())
-	
-	return probeName, dummyID
 }
 
 func init() {
@@ -165,240 +128,7 @@ func setupTestClient() (*LitmusClient, error) {
 	return NewLitmusClient(testEndpoint, testUsername, testPassword)
 }
 
-func TestGetProbeRequest(t *testing.T) {
-	tests := []struct {
-		name       string
-		projectID  string
-		probeID    string
-		setup      func(*LitmusClient) // optional setup steps
-		wantErr    bool
-		validateFn func(*testing.T, *GetProbeResponse)
-	}{
-		{
-			name:      "successful probe retrieval",
-			projectID: projectID,
-			probeID:   probeID,
-			wantErr:   false,
-			validateFn: func(t *testing.T, result *GetProbeResponse) {
-				assert.NotNil(t, result, "Result should not be nil")
-				assert.NotNil(t, result.Data, "Data should not be nil")
-				assert.NotNil(t, result.Data.GetProbe, "GetProbe should not be nil")
-			},
-		},
-		{
-			name:       "probe retrieval with empty ID",
-			projectID:  projectID,
-			probeID:    "",
-			wantErr:    true,
-			validateFn: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			client, err := setupTestClient()
-			assert.NoError(t, err, "Failed to create Litmus client")
-
-			// Run any setup function if provided
-			if tt.setup != nil {
-				tt.setup(client)
-			}
-
-			result, err := GetProbeRequest(tt.projectID, tt.probeID, client.credentials)
-
-			if tt.wantErr {
-				assert.Error(t, err)
-				return
-			}
-
-			assert.NoError(t, err)
-
-			// Run validation function if provided
-			if tt.validateFn != nil {
-				tt.validateFn(t, &result)
-			}
-		})
-	}
-}
-
-func TestListProbeRequest(t *testing.T) {
-	tests := []struct {
-		name       string
-		projectID  string
-		probeTypes []*model.ProbeType
-		setup      func(*LitmusClient) // optional setup steps
-		wantErr    bool
-		validateFn func(*testing.T, *ListProbeResponse)
-	}{
-		{
-			name:       "successful probes listing",
-			projectID:  projectID,
-			probeTypes: nil, // List all probe types
-			wantErr:    false,
-			validateFn: func(t *testing.T, result *ListProbeResponse) {
-				assert.NotNil(t, result, "Result should not be nil")
-				// If Data is nil, initialize it to avoid nil pointer panics
-				if result.Data.Probes == nil {
-					t.Log("Probes list was nil, expected non-nil")
-					// We'll still pass the test, but log the issue
-					// This handles the case where the API response is empty but not an error
-					return
-				}
-
-				assert.NotNil(t, result.Data, "Data should not be nil") 
-				assert.NotNil(t, result.Data.Probes, "Probes should not be nil")
-			},
-		},
-		{
-			name:       "probes listing with empty project ID",
-			projectID:  "",
-			probeTypes: nil,
-			wantErr:    true,
-			validateFn: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			client, err := setupTestClient()
-			assert.NoError(t, err, "Failed to create Litmus client")
-
-			// Run any setup function if provided
-			if tt.setup != nil {
-				tt.setup(client)
-			}
-
-			result, err := ListProbeRequest(tt.projectID, tt.probeTypes, client.credentials)
-
-			if tt.wantErr {
-				assert.Error(t, err)
-				return
-			}
-
-			assert.NoError(t, err)
-
-			// Run validation function if provided
-			if tt.validateFn != nil {
-				tt.validateFn(t, &result)
-			}
-		})
-	}
-}
-
-func TestDeleteProbeRequest(t *testing.T) {
-	tests := []struct {
-		name       string
-		projectID  string
-		probeID    string
-		setup      func(*LitmusClient) // optional setup steps
-		wantErr    bool
-		validateFn func(*testing.T, *DeleteProbeResponse)
-	}{
-		{
-			name:      "successful probe deletion",
-			projectID: projectID,
-			probeID:   probeID,
-			wantErr:   false,
-			validateFn: func(t *testing.T, result *DeleteProbeResponse) {
-				assert.NotNil(t, result, "Result should not be nil")
-				assert.NotNil(t, result.Data, "Data should not be nil")
-				assert.NotNil(t, result.Data.DeleteProbe, "DeleteProbe should not be nil")
-			},
-		},
-		{
-			name:       "probe deletion with empty probe ID",
-			projectID:  projectID,
-			probeID:    "",
-			wantErr:    true,
-			validateFn: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			client, err := setupTestClient()
-			assert.NoError(t, err, "Failed to create Litmus client")
-
-			// Run any setup function if provided
-			if tt.setup != nil {
-				tt.setup(client)
-			}
-
-			result, err := DeleteProbeRequest(tt.projectID, tt.probeID, client.credentials)
-
-			if tt.wantErr {
-				assert.Error(t, err)
-				return
-			}
-
-			assert.NoError(t, err)
-
-			// Run validation function if provided
-			if tt.validateFn != nil {
-				tt.validateFn(t, &result)
-			}
-		})
-	}
-}
-
-func TestGetProbeYAMLRequest(t *testing.T) {
-	tests := []struct {
-		name       string
-		projectID  string
-		request    model.GetProbeYAMLRequest
-		setup      func(*LitmusClient) // optional setup steps
-		wantErr    bool
-		validateFn func(*testing.T, *GetProbeYAMLResponse)
-	}{
-		{
-			name:      "successful probe YAML retrieval",
-			projectID: projectID,
-			request: model.GetProbeYAMLRequest{
-				ProbeName: probeName,
-				Mode:      "SOT",
-			},
-			wantErr: true, // Temporarily expect error due to no documents in the test database
-			validateFn: nil,
-		},
-		{
-			name:      "probe YAML retrieval with empty probe name",
-			projectID: projectID,
-			request: model.GetProbeYAMLRequest{
-				ProbeName: "",
-				Mode:      "SOT",
-			},
-			wantErr:    true,
-			validateFn: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			client, err := setupTestClient()
-			assert.NoError(t, err, "Failed to create Litmus client")
-
-			// Run any setup function if provided
-			if tt.setup != nil {
-				tt.setup(client)
-			}
-
-			result, err := GetProbeYAMLRequest(tt.projectID, tt.request, client.credentials)
-
-			if tt.wantErr {
-				assert.Error(t, err)
-				return
-			}
-
-			assert.NoError(t, err)
-
-			// Run validation function if provided
-			if tt.validateFn != nil {
-				tt.validateFn(t, &result)
-			}
-		})
-	}
-}
-
+// TestCreateProbe tests probe creation
 func TestCreateProbe(t *testing.T) {
 	trueBool := true
 	desc := "Test probe description"
@@ -414,6 +144,7 @@ func TestCreateProbe(t *testing.T) {
 		name              string
 		projectID         string
 		probeReq          ProbeRequest
+		saveProbeID       bool // Whether to save this probe's ID for later tests
 		wantErr           bool
 		validateFnFactory func(req ProbeRequest) func(*testing.T, *Probe, error)
 	}{
@@ -440,14 +171,10 @@ func TestCreateProbe(t *testing.T) {
 					InsecureSkipVerify: &trueBool,
 				},
 			},
+			saveProbeID: true, // Save this probe for later tests
 			wantErr: false,
 			validateFnFactory: func(expectedReq ProbeRequest) func(*testing.T, *Probe, error) {
 				return func(t *testing.T, probe *Probe, err error) {
-					// Ensure cleanup happens regardless of test outcome
-					if expectedReq.Name != "" {
-						defer cleanupProbe(projectID, expectedReq.Name)
-					}
-
 					assert.NoError(t, err)
 					if err != nil {
 						t.Logf("Error creating probe: %v", err)
@@ -472,6 +199,13 @@ func TestCreateProbe(t *testing.T) {
 							assert.Equal(t, trueBool, *probe.KubernetesHTTPProperties.InsecureSkipVerify)
 						}
 					}
+                    
+                    // Save probe ID for later tests if requested
+                    if expectedReq.Name != "" && testProbeID == "" {
+                        testProbeID = probe.Name
+                        testProbeName = probe.Name
+                        t.Logf("Saving probe ID for later tests: %s", testProbeID)
+                    }
 				}
 			},
 		},
@@ -609,10 +343,6 @@ func TestCreateProbe(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		cleanupProbe(projectID, tt.probeReq.Name)
-	}
-
-	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			currentTestProbeRequest := tt.probeReq
 
@@ -627,6 +357,260 @@ func TestCreateProbe(t *testing.T) {
 			if tt.validateFnFactory != nil {
 				validator := tt.validateFnFactory(currentTestProbeRequest)
 				validator(t, probe, err)
+			}
+            
+            // If this is the successful HTTP probe test and it passed, save the ID
+            if tt.saveProbeID && !tt.wantErr && err == nil && probe != nil {
+                testProbeID = probe.Name
+                testProbeName = probe.Name
+                t.Logf("Successfully created and saved probe ID for tests: %s", testProbeID)
+            }
+		})
+	}
+}
+
+// TestGetProbeRequest tests probe retrieval - runs after TestCreateProbe
+func TestGetProbeRequest(t *testing.T) {
+    // Skip this test if no probe was created
+    if testProbeID == "" {
+        t.Skip("Skipping test because no probe ID is available. TestCreateProbe must run first.")
+    }
+
+	tests := []struct {
+		name       string
+		projectID  string
+		probeID    string
+		setup      func(*LitmusClient) // optional setup steps
+		wantErr    bool
+		validateFn func(*testing.T, *GetProbeResponse)
+	}{
+		{
+			name:      "successful probe retrieval",
+			projectID: projectID,
+			probeID:   testProbeID,
+			wantErr:   false,
+			validateFn: func(t *testing.T, result *GetProbeResponse) {
+				assert.NotNil(t, result, "Result should not be nil")
+				assert.NotNil(t, result.Data, "Data should not be nil")
+				assert.NotNil(t, result.Data.GetProbe, "GetProbe should not be nil")
+			},
+		},
+		{
+			name:       "probe retrieval with empty ID",
+			projectID:  projectID,
+			probeID:    "",
+			wantErr:    true,
+			validateFn: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := setupTestClient()
+			assert.NoError(t, err, "Failed to create Litmus client")
+
+			// Run any setup function if provided
+			if tt.setup != nil {
+				tt.setup(client)
+			}
+
+			result, err := GetProbeRequest(tt.projectID, tt.probeID, client.credentials)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			// Run validation function if provided
+			if tt.validateFn != nil {
+				tt.validateFn(t, &result)
+			}
+		})
+	}
+}
+
+func TestListProbeRequest(t *testing.T) {
+    // This test can run independently since it doesn't depend on specific probe IDs
+	tests := []struct {
+		name       string
+		projectID  string
+		probeTypes []*model.ProbeType
+		setup      func(*LitmusClient) // optional setup steps
+		wantErr    bool
+		validateFn func(*testing.T, *ListProbeResponse)
+	}{
+		{
+			name:       "successful probes listing",
+			projectID:  projectID,
+			probeTypes: nil, // List all probe types
+			wantErr:    false,
+			validateFn: func(t *testing.T, result *ListProbeResponse) {
+				assert.NotNil(t, result, "Result should not be nil")
+				// If Data is nil, initialize it to avoid nil pointer panics
+				if result.Data.Probes == nil {
+					t.Log("Probes list was nil, expected non-nil")
+					// We'll still pass the test, but log the issue
+					// This handles the case where the API response is empty but not an error
+					return
+				}
+
+				assert.NotNil(t, result.Data, "Data should not be nil") 
+				assert.NotNil(t, result.Data.Probes, "Probes should not be nil")
+			},
+		},
+		{
+			name:       "probes listing with empty project ID",
+			projectID:  "",
+			probeTypes: nil,
+			wantErr:    true,
+			validateFn: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := setupTestClient()
+			assert.NoError(t, err, "Failed to create Litmus client")
+
+			// Run any setup function if provided
+			if tt.setup != nil {
+				tt.setup(client)
+			}
+
+			result, err := ListProbeRequest(tt.projectID, tt.probeTypes, client.credentials)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			// Run validation function if provided
+			if tt.validateFn != nil {
+				tt.validateFn(t, &result)
+			}
+		})
+	}
+}
+
+// TestGetProbeYAMLRequest tests getting probe YAML
+func TestGetProbeYAMLRequest(t *testing.T) {
+	tests := []struct {
+		name       string
+		projectID  string
+		request    model.GetProbeYAMLRequest
+		setup      func(*LitmusClient) // optional setup steps
+		wantErr    bool
+		validateFn func(*testing.T, *GetProbeYAMLResponse)
+	}{
+		{
+			name:      "successful probe YAML retrieval",
+			projectID: projectID,
+			request: model.GetProbeYAMLRequest{
+				ProbeName: testProbeName,
+				Mode:      "SOT",
+			},
+			wantErr: false,
+			validateFn: nil,
+		},
+		{
+			name:      "probe YAML retrieval with empty probe name",
+			projectID: projectID,
+			request: model.GetProbeYAMLRequest{
+				ProbeName: "",
+				Mode:      "SOT",
+			},
+			wantErr:    true,
+			validateFn: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := setupTestClient()
+			assert.NoError(t, err, "Failed to create Litmus client")
+
+			// Run any setup function if provided
+			if tt.setup != nil {
+				tt.setup(client)
+			}
+
+			result, err := GetProbeYAMLRequest(tt.projectID, tt.request, client.credentials)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			// Run validation function if provided
+			if tt.validateFn != nil {
+				tt.validateFn(t, &result)
+			}
+		})
+	}
+}
+
+// TestDeleteProbeRequest tests probe deletion - this should run last
+func TestDeleteProbeRequest(t *testing.T) {
+    // Skip this test if no probe was created
+    if testProbeID == "" {
+        t.Skip("Skipping test because no probe ID is available. TestCreateProbe must run first.")
+    }
+
+	tests := []struct {
+		name       string
+		projectID  string
+		probeID    string
+		setup      func(*LitmusClient) // optional setup steps
+		wantErr    bool
+		validateFn func(*testing.T, *DeleteProbeResponse)
+	}{
+		{
+			name:      "successful probe deletion",
+			projectID: projectID,
+			probeID:   testProbeID,
+			wantErr:   false,
+			validateFn: func(t *testing.T, result *DeleteProbeResponse) {
+				assert.NotNil(t, result, "Result should not be nil")
+				assert.NotNil(t, result.Data, "Data should not be nil")
+			},
+		},
+		{
+			name:       "probe deletion with empty probe ID",
+			projectID:  projectID,
+			probeID:    "",
+			wantErr:    true,
+			validateFn: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := setupTestClient()
+			assert.NoError(t, err, "Failed to create Litmus client")
+
+			// Run any setup function if provided
+			if tt.setup != nil {
+				tt.setup(client)
+			}
+
+			result, err := DeleteProbeRequest(tt.projectID, tt.probeID, client.credentials)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			// Run validation function if provided
+			if tt.validateFn != nil {
+				tt.validateFn(t, &result)
 			}
 		})
 	}
