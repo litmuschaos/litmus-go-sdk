@@ -86,7 +86,7 @@ func GetProbeYAMLRequest(pid string, request models.GetProbeYAMLRequest, cred ty
 }
 
 // CreateProbe creates a new chaos probe
-func CreateProbe(request ProbeRequest, projectID string, cred types.Credentials) (*Probe, error) {
+func CreateProbeRequest(request ProbeRequest, projectID string, cred types.Credentials) (*Probe, error) {
 	if err := validateProbeRequest(request); err != nil {
 		return nil, err
 	}

@@ -25,6 +25,9 @@ import (
 
 // ProbeClient defines the interface for probe operations
 type ProbeClient interface {
+	// Create creates a new probe
+	Create(request probe.ProbeRequest, projectID string) (probe.Probe, error)
+
 	// List retrieves all probes
 	List(projectID string) ([]models.Probe, error)
 
@@ -64,6 +67,23 @@ func (c *probeClient) List(projectID string) ([]models.Probe, error) {
 	return response.Data.Probes, nil
 }
 
+// Create creates a new probe
+func (c *probeClient) Create(request probe.ProbeRequest, projectID string) (probe.Probe, error) {
+	if c.credentials.Endpoint == "" {
+		return probe.Probe{}, fmt.Errorf("endpoint not set in credentials")
+	}
+
+	if projectID == "" {
+		return probe.Probe{}, fmt.Errorf("project ID cannot be empty")
+	}
+
+	response, err := probe.CreateProbeRequest(request, projectID, c.credentials)
+	if err != nil {
+		return probe.Probe{}, fmt.Errorf("failed to create probe: %w", err)
+	}
+
+	return *response, nil
+}
 
 // Delete removes a probe
 func (c *probeClient) Delete(projectID string, id string) error {

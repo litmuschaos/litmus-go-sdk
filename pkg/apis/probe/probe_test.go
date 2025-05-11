@@ -346,7 +346,7 @@ func TestCreateProbe(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			currentTestProbeRequest := tt.probeReq
 
-			probe, err := CreateProbe(currentTestProbeRequest, tt.projectID, credentials)
+			probe, err := CreateProbeRequest(currentTestProbeRequest, tt.projectID, credentials)
 
 			if tt.wantErr {
 				assert.Error(t, err)
