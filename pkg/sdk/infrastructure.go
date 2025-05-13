@@ -26,16 +26,16 @@ import (
 // InfrastructureClient defines the interface for infrastructure operations
 type InfrastructureClient interface {
 	// List retrieves all infrastructure resources
-	List() (interface{}, error)
+	List() (models.ListInfraResponse, error)
 
 	// Create creates a new infrastructure resource
-	Create(name string, config map[string]interface{}) (interface{}, error)
+	Create(name string, infraConfig types.Infra) (string, error)
 
 	// Delete removes an infrastructure resource
 	Delete(id string) error
 
 	// Get retrieves infrastructure details
-	Get(id string) (interface{}, error)
+	Get(id string) (*models.Infra, error)
 
 	// Disconnect terminates a connection to an infrastructure
 	Disconnect(id string) error
@@ -47,73 +47,57 @@ type infrastructureClient struct {
 }
 
 // List retrieves all infrastructure resources
-func (c *infrastructureClient) List() (interface{}, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
+func (c *infrastructureClient) List() (models.ListInfraResponse, error) {
+	if c.credentials.Endpoint == "" {
+		return models.ListInfraResponse{}, fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
-		return nil, fmt.Errorf("project ID not set in credentials")
+		return models.ListInfraResponse{}, fmt.Errorf("project ID not set in credentials")
 	}
 
 	request := models.ListInfraRequest{}
 	
 	response, err := infrastructure.GetInfraList(c.credentials, c.credentials.ProjectID, request)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list infrastructure resources: %w", err)
+		return models.ListInfraResponse{}, fmt.Errorf("failed to list infrastructure resources: %w", err)
 	}
 
 	return response.Data.ListInfraDetails, nil
 }
 
 // Create creates a new infrastructure resource
-func (c *infrastructureClient) Create(name string, config map[string]interface{}) (interface{}, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
+func (c *infrastructureClient) Create(name string, infraConfig types.Infra) (string, error) {
+	if c.credentials.Endpoint == "" {
+		return "", fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
-		return nil, fmt.Errorf("project ID not set in credentials")
+		return "", fmt.Errorf("project ID not set in credentials")
 	}
 
-	// Extract values from config or use defaults
-	var (
-		description    = getStringFromConfig(config, "description", fmt.Sprintf("Infrastructure created via Litmus SDK: %s", name))
-		platformName   = getStringFromConfig(config, "platformName", "default-platform")
-		environmentID  = getStringFromConfig(config, "environmentID", "")
-		namespace      = getStringFromConfig(config, "namespace", "litmus")
-		serviceAccount = getStringFromConfig(config, "serviceAccount", "litmus")
-		nsExists       = getBoolFromConfig(config, "nsExists", false)
-		saExists       = getBoolFromConfig(config, "saExists", false)
-		skipSSL        = getBoolFromConfig(config, "skipSSL", false)
-		nodeSelector   = getStringFromConfig(config, "nodeSelector", "")
-		tolerations    = getStringFromConfig(config, "tolerations", "")
-		mode           = getStringFromConfig(config, "mode", string(models.InfraScopeNamespace))
-	)
-
-	// Create infrastructure request
-	infra := types.Infra{
-		ProjectID:      c.credentials.ProjectID,
-		InfraName:      name,
-		Description:    description,
-		PlatformName:   platformName,
-		EnvironmentID:  environmentID,
-		Namespace:      namespace,
-		ServiceAccount: serviceAccount,
-		NsExists:       nsExists,
-		SAExists:       saExists,
-		SkipSSL:        skipSSL,
-		NodeSelector:   nodeSelector,
-		Tolerations:    tolerations,
-		Mode:           models.InfraScope(mode).String(),
+	// Use the provided config directly
+	infra := infraConfig
+	
+	// Ensure required fields are set
+	infra.ProjectID = c.credentials.ProjectID
+	
+	// Set name if not already set
+	if infra.InfraName == "" {
+		infra.InfraName = name
+	}
+	
+	// Set default description if not provided
+	if infra.Description == "" {
+		infra.Description = fmt.Sprintf("Infrastructure created via Litmus SDK: %s", name)
 	}
 
 	response, err := infrastructure.ConnectInfra(infra, c.credentials)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create infrastructure: %w", err)
+		return "", fmt.Errorf("failed to create infrastructure: %w", err)
 	}
 
-	return response.Data.RegisterInfraDetails, nil
+	return response.RegisterInfra.InfraID, nil
 }
 
 // Delete removes an infrastructure resource
@@ -122,9 +106,9 @@ func (c *infrastructureClient) Delete(id string)  error {
 }
 
 // Get retrieves infrastructure details
-func (c *infrastructureClient) Get(id string) (interface{}, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
+func (c *infrastructureClient) Get(id string) (*models.Infra, error) {
+	if c.credentials.Endpoint == "" {
+		return nil, fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
@@ -153,8 +137,8 @@ func (c *infrastructureClient) Get(id string) (interface{}, error) {
 
 // Disconnect terminates a connection to an infrastructure
 func (c *infrastructureClient) Disconnect(id string)  error {
-	if c.credentials.ServerEndpoint == "" {
-		return fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return fmt.Errorf("endpoint not set in credentials")
 	}
 	
 	if c.credentials.ProjectID == "" {
@@ -171,23 +155,4 @@ func (c *infrastructureClient) Disconnect(id string)  error {
 	}
 
 	return nil
-}
-
-// Helper functions for config extraction
-func getStringFromConfig(config map[string]interface{}, key, defaultValue string) string {
-	if val, ok := config[key]; ok {
-		if strVal, ok := val.(string); ok {
-			return strVal
-		}
-	}
-	return defaultValue
-}
-
-func getBoolFromConfig(config map[string]interface{}, key string, defaultValue bool) bool {
-	if val, ok := config[key]; ok {
-		if boolVal, ok := val.(bool); ok {
-			return boolVal
-		}
-	}
-	return defaultValue
 }

@@ -31,7 +31,7 @@ func GetInfraList(c types.Credentials, pid string, request models.ListInfraReque
 	}
 	
 	return utils.SendGraphQLRequest[InfraData](
-		fmt.Sprintf("%s%s", c.ServerEndpoint, utils.GQLAPIPath),
+		fmt.Sprintf("%s%s", c.Endpoint, utils.GQLAPIPath),
 		c.Token,
 		ListInfraQuery,
 		struct {
@@ -66,7 +66,7 @@ func ConnectInfra(infra types.Infra, cred types.Credentials) (InfraConnectionDat
 	}
 
 	return utils.SendGraphQLRequest[InfraConnectionData](
-		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		fmt.Sprintf("%s%s", cred.Endpoint, utils.GQLAPIPath),
 		cred.Token,
 		RegisterInfraQuery,
 		struct {
@@ -78,8 +78,8 @@ func ConnectInfra(infra types.Infra, cred types.Credentials) (InfraConnectionDat
 		},
 		"Error in registering Chaos Infrastructure",
 	)
-}
 
+}
 func CreateRegisterInfraRequest(infra types.Infra) models.RegisterInfraRequest {
 	return models.RegisterInfraRequest{
 		Name:               infra.InfraName,
@@ -99,7 +99,7 @@ func CreateRegisterInfraRequest(infra types.Infra) models.RegisterInfraRequest {
 // DisconnectInfra sends GraphQL API request for disconnecting Chaos Infra(s).
 func DisconnectInfra(projectID string, infraID string, cred types.Credentials) (DisconnectInfraData, error) {
 	return utils.SendGraphQLRequest[DisconnectInfraData](
-		fmt.Sprintf("%s%s", cred.ServerEndpoint, utils.GQLAPIPath),
+		fmt.Sprintf("%s%s", cred.Endpoint, utils.GQLAPIPath),
 		cred.Token,
 		DisconnectInfraQuery,
 		struct {

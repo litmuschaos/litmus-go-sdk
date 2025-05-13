@@ -25,17 +25,20 @@ import (
 
 // ProbeClient defines the interface for probe operations
 type ProbeClient interface {
+	// Create creates a new probe
+	Create(request probe.ProbeRequest, projectID string) (probe.Probe, error)
+
 	// List retrieves all probes
-	List(projectID string) (interface{}, error)
+	List(projectID string) ([]models.Probe, error)
 
 	// Delete removes a probe
 	Delete(projectID string, id string) error
 
 	// Get retrieves probe details
-	Get(projectID string, id string) (interface{}, error)
+	Get(projectID string, id string) (models.Probe, error)
 
 	// GetProbeYAML retrieves the YAML configuration for a probe
-	GetProbeYAML(projectID string, id string, params map[string]string) (interface{}, error)
+	GetProbeYAML(projectID string, id string, request models.GetProbeYAMLRequest) (string, error)
 }
 
 // probeClient implements the ProbeClient interface
@@ -44,9 +47,9 @@ type probeClient struct {
 }
 
 // List retrieves all probes
-func (c *probeClient) List(projectID string) (interface{}, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
+func (c *probeClient) List(projectID string) ([]models.Probe, error) {
+	if c.credentials.Endpoint == "" {
+		return nil, fmt.Errorf("endpoint not set in credentials")
 	}
 
 	if projectID == "" {
@@ -64,11 +67,28 @@ func (c *probeClient) List(projectID string) (interface{}, error) {
 	return response.Data.Probes, nil
 }
 
+// Create creates a new probe
+func (c *probeClient) Create(request probe.ProbeRequest, projectID string) (probe.Probe, error) {
+	if c.credentials.Endpoint == "" {
+		return probe.Probe{}, fmt.Errorf("endpoint not set in credentials")
+	}
+
+	if projectID == "" {
+		return probe.Probe{}, fmt.Errorf("project ID cannot be empty")
+	}
+
+	response, err := probe.CreateProbeRequest(request, projectID, c.credentials)
+	if err != nil {
+		return probe.Probe{}, fmt.Errorf("failed to create probe: %w", err)
+	}
+
+	return *response, nil
+}
 
 // Delete removes a probe
 func (c *probeClient) Delete(projectID string, id string) error {
-	if c.credentials.ServerEndpoint == "" {
-		return fmt.Errorf("server endpoint not set in credentials")
+	if c.credentials.Endpoint == "" {
+		return fmt.Errorf("endpoint not set in credentials")
 	}
 
 	if projectID == "" {
@@ -93,50 +113,49 @@ func (c *probeClient) Delete(projectID string, id string) error {
 
 
 // Get retrieves probe details
-func (c *probeClient) Get(projectID string, id string) (interface{}, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
+func (c *probeClient) Get(projectID string, id string) (models.Probe, error) {
+	if c.credentials.Endpoint == "" {
+		return models.Probe{}, fmt.Errorf("endpoint not set in credentials")
 	}
 
 	if projectID == "" {
-		return nil, fmt.Errorf("project ID cannot be empty")
+		return models.Probe{}, fmt.Errorf("project ID cannot be empty")
 	}
 
 	if id == "" {
-		return nil, fmt.Errorf("probe ID cannot be empty")
+		return models.Probe{}, fmt.Errorf("probe ID cannot be empty")
 	}
 
 	response, err := probe.GetProbeRequest(projectID, id, c.credentials)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get probe: %w", err)
+		return models.Probe{}, fmt.Errorf("failed to get probe: %w", err)
 	}
 
 	return response.Data.GetProbe, nil
 }
 
-// Execute runs a probe
-func (c *probeClient) GetProbeYAML(projectID string, id string, params map[string]string) (interface{}, error) {
-	if c.credentials.ServerEndpoint == "" {
-		return nil, fmt.Errorf("server endpoint not set in credentials")
+// GetProbeYAML retrieves the YAML configuration for a probe
+func (c *probeClient) GetProbeYAML(projectID string, id string, request models.GetProbeYAMLRequest) (string, error) {
+	if c.credentials.Endpoint == "" {
+		return "", fmt.Errorf("endpoint not set in credentials")
 	}
 
 	if projectID == "" {
-		return nil, fmt.Errorf("project ID cannot be empty")
+		return "", fmt.Errorf("project ID cannot be empty")
 	}
 
 	if id == "" {
-		return nil, fmt.Errorf("probe ID cannot be empty")
+		return "", fmt.Errorf("probe ID cannot be empty")
 	}
 
-	// Create a request to get probe YAML
-	request := models.GetProbeYAMLRequest{
-		ProbeName: id,
-		Mode: models.Mode(params["mode"]),
+	// Ensure probe name is set
+	if request.ProbeName == "" {
+		request.ProbeName = id
 	}
 
 	response, err := probe.GetProbeYAMLRequest(projectID, request, c.credentials)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute probe: %w", err)
+		return "", fmt.Errorf("failed to execute probe: %w", err)
 	}
 
 	return response.Data.GetProbeYAML, nil

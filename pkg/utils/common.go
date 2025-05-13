@@ -54,6 +54,7 @@ func SendHTTPRequest(endpoint, token string, payload []byte, method string) ([]b
 	if token != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	}
+    req.Header.Set("Referer", endpoint) 
 
 	resp, err := client.Do(req)
 	if err != nil {

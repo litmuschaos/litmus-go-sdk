@@ -27,6 +27,20 @@ const (
 			initialDelay
 			evaluationTimeout
 			stopOnFailure
+			url
+			insecureSkipVerify
+			method {
+				get {
+					responseCode
+					criteria
+				}
+				post {
+					body
+					contentType
+					responseCode
+					criteria
+				}
+			}
 		  }
 		  kubernetesCMDProperties{
 			probeTimeout
@@ -37,6 +51,13 @@ const (
 			initialDelay
 			evaluationTimeout
 			stopOnFailure
+			command
+			comparator {
+				type
+				criteria
+				value
+			}
+			source
 		  }
 		  k8sProperties {
 			probeTimeout
@@ -47,6 +68,10 @@ const (
 			initialDelay
 			evaluationTimeout
 			stopOnFailure
+			group
+			version
+			resource
+			namespace
 		  }
 		  promProperties {
 			probeTimeout
@@ -57,6 +82,8 @@ const (
 			initialDelay
 			evaluationTimeout
 			stopOnFailure
+			endpoint
+			query
 		  }
 		  createdAt
 		  createdBy{
@@ -79,4 +106,56 @@ const (
 		deleteProbe(probeName: $probeName, projectID: $projectID)
 	  }
 	`
+	createProbeMutation = `mutation addProbe($projectID: ID!, $request: ProbeRequest!) {
+		addProbe(projectID: $projectID, request: $request) {
+			name
+			description
+			type
+			infrastructureType
+			tags
+			kubernetesHTTPProperties {
+				probeTimeout
+				interval
+				url
+				method {
+					get {
+						responseCode
+						criteria
+					}
+					post {
+						body
+						contentType
+						responseCode
+						criteria
+					}
+				}
+				insecureSkipVerify
+			}
+			kubernetesCMDProperties {
+				probeTimeout
+				interval
+				command
+				comparator {
+					type
+					criteria
+					value
+				}
+			}
+			k8sProperties {
+				probeTimeout
+				interval
+				retry
+				group
+				version
+				resource
+				namespace
+			}
+			promProperties {
+				probeTimeout
+				interval
+				endpoint
+				query
+			}
+		}
+	}`
 )

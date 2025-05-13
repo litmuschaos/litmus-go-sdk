@@ -20,11 +20,12 @@ type Errors struct {
 }
 
 type InfraConnectionData struct {
-	Data   RegisterInfra `json:"data"`
-	Errors []struct {
-		Message string   `json:"message"`
-		Path    []string `json:"path"`
-	} `json:"errors"`
+    RegisterInfra struct {
+        InfraID  string `json:"infraID"`
+        Name     string `json:"name"`
+        Token    string `json:"token"`
+        Manifest string `json:"manifest"`
+    } `json:"registerInfra"`
 }
 
 type RegisterInfra struct {
